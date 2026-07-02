@@ -20,16 +20,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.detail.DetailViewModel
@@ -42,10 +40,7 @@ import kotlinx.coroutines.CoroutineScope
 /**
  * 播放页
  *
- * 全屏视频播放器页面：
- * - 顶部 TopAppBar（返回 + 标题）
- * - 播放器区域（自动填充剩余空间）
- * - 自动解析播放地址并开始播放
+ * 全屏视频播放器页面。
  *
  * @param sourceName 视频源名称
  * @param episodeUrl 剧集 URL
@@ -86,10 +81,10 @@ fun PlayerScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         // 顶部栏
         TopAppBar(
-            title = { Text(title.ifBlank { "播放" }) },
+            title = title.ifBlank { "播放" },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Text("←", style = MiuixTheme.textStyles.title3)
+                    Text("返回", style = MiuixTheme.textStyles.body2)
                 }
             }
         )
@@ -122,9 +117,4 @@ fun PlayerScreen(
             }
         }
     }
-}
-
-@Composable
-private fun rememberCoroutineScope(): CoroutineScope {
-    return kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
 }

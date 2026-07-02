@@ -28,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,11 +45,7 @@ import kotlinx.coroutines.CoroutineScope
 /**
  * 视频源管理页
  *
- * 功能：
- * - 展示已导入的视频源列表
- * - 启用/禁用切换
- * - 导入 JSON 格式视频源
- * - 导出视频源配置
+ * 功能：展示已导入的视频源列表、启用/禁用切换、导入 JSON 格式视频源。
  *
  * @param sourceRepository 视频源仓库
  * @param onNavigateBack 返回上一页
@@ -67,19 +64,15 @@ fun SourceManageScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("视频源管理") },
+            title = "视频源管理",
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Text("←", style = MiuixTheme.textStyles.title3)
+                    Text("返回", style = MiuixTheme.textStyles.body2)
                 }
             },
             actions = {
                 IconButton(onClick = { showImport = !showImport }) {
-                    Text("导入", style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.primary)
-                }
-                IconButton(onClick = { viewModel.exportSources() }) {
-                    Text("导出", style = MiuixTheme.textStyles.body1,
+                    Text("导入", style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.primary)
                 }
             }
@@ -92,19 +85,13 @@ fun SourceManageScreen(
                     value = importText,
                     onValueChange = { importText = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = "粘贴视频源 JSON..."
+                    label = "粘贴视频源 JSON..."
                 )
                 Text(
-                    text = "导入",
-                    style = MiuixTheme.textStyles.body1,
+                    text = "点击导入",
+                    style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 8.dp)
-                        .padding(4.dp)
-                        .let { mod ->
-                            mod.let {
-                                it
-                            }
-                        }
                 )
             }
         }
@@ -114,7 +101,7 @@ fun SourceManageScreen(
             is SourceManageUiState.ImportSuccess -> {
                 Text(
                     text = "成功导入 ${state.count} 个视频源",
-                    style = MiuixTheme.textStyles.body2,
+                    style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.primary,
                     modifier = Modifier.padding(16.dp)
                 )
@@ -122,7 +109,7 @@ fun SourceManageScreen(
             is SourceManageUiState.ImportError -> {
                 Text(
                     text = state.message,
-                    style = MiuixTheme.textStyles.body2,
+                    style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.error,
                     modifier = Modifier.padding(16.dp)
                 )
@@ -136,7 +123,7 @@ fun SourceManageScreen(
                 Text(
                     text = "暂无视频源，请导入",
                     style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariant
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
             }
         } else {
@@ -151,9 +138,4 @@ fun SourceManageScreen(
             }
         }
     }
-}
-
-@Composable
-private fun rememberCoroutineScope(): CoroutineScope {
-    return kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
 }

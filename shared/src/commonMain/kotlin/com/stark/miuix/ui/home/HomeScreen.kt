@@ -17,24 +17,19 @@
 package com.stark.miuix.ui.home
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -43,22 +38,15 @@ import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.VideoGrid
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.icon.SusIcon
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.SquircleShape
 
 /**
  * 首页
  *
- * 应用的主入口页面，展示：
- * - 顶部 TopAppBar（标题 + 搜索按钮 + 设置按钮）
- * - 视频源状态概览
- * - 推荐视频网格列表
- * - 空状态提示（无已启用的视频源时）
+ * 应用主入口页面，展示推荐视频和视频源状态概览。
  *
  * @param videoRepository 视频仓库
  * @param sourceRepository 视频源仓库
@@ -78,7 +66,8 @@ fun HomeScreen(
     onNavigateToSourceManage: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    val viewModel = HomeViewModel(videoRepository, sourceRepository, rememberCoroutineScope())
+    val scope = rememberCoroutineScope()
+    val viewModel = HomeViewModel(videoRepository, sourceRepository, scope)
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -88,19 +77,16 @@ fun HomeScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         // 顶部栏
         TopAppBar(
-            title = { Text("视频聚合") },
+            title = "视频聚合",
             actions = {
                 IconButton(onClick = onNavigateToSearch) {
-                    Icon(
-                        imageVector = SusIcon,
-                        contentDescription = "搜索"
-                    )
+                    Text("搜索", style = MiuixTheme.textStyles.body2)
                 }
                 IconButton(onClick = onNavigateToSourceManage) {
-                    Text("源", style = MiuixTheme.textStyles.body1)
+                    Text("源", style = MiuixTheme.textStyles.body2)
                 }
                 IconButton(onClick = onNavigateToSettings) {
-                    Text("⚙", style = MiuixTheme.textStyles.body1)
+                    Text("设置", style = MiuixTheme.textStyles.body2)
                 }
             }
         )
@@ -126,20 +112,20 @@ fun HomeScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "暂无视频源",
-                                style = MiuixTheme.textStyles.title3,
+                                style = MiuixTheme.textStyles.body1,
                                 color = MiuixTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "请先导入视频源",
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                             Card(
                                 modifier = Modifier
                                     .padding(top = 16.dp)
                                     .clickable { onNavigateToSourceManage() },
-                                shape = SquircleShape(12.dp)
+                                cornerRadius = 12.dp
                             ) {
                                 Text(
                                     text = "导入视频源",
@@ -161,7 +147,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                                shape = SquircleShape(12.dp)
+                                cornerRadius = 12.dp
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -172,7 +158,7 @@ fun HomeScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "已启用 ${state.sources.size} 个视频源",
-                                            style = MiuixTheme.textStyles.title3,
+                                            style = MiuixTheme.textStyles.body1,
                                             color = MiuixTheme.colorScheme.onSurface
                                         )
                                     }
@@ -191,7 +177,7 @@ fun HomeScreen(
                             item {
                                 Text(
                                     text = "推荐视频",
-                                    style = MiuixTheme.textStyles.title2,
+                                    style = MiuixTheme.textStyles.headline1,
                                     color = MiuixTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                 )
@@ -224,13 +210,13 @@ fun HomeScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "加载失败",
-                            style = MiuixTheme.textStyles.title3,
+                            style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.error
                         )
                         Text(
                             text = state.message,
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariant,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -238,9 +224,4 @@ fun HomeScreen(
             }
         }
     }
-}
-
-@Composable
-private fun rememberCoroutineScope(): kotlinx.coroutines.CoroutineScope {
-    return kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
 }

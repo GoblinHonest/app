@@ -24,10 +24,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,21 +37,15 @@ import io.kamel.image.asyncPainterResource
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.SquircleShape
 
 /**
  * 视频卡片组件
  *
- * 以 Squircle 超椭圆圆角卡片形式展示视频信息，包含：
- * - 封面图片（16:9 比例，带毛玻璃占位背景）
- * - 标题（单行截断）
- * - 描述（可选，单行截断）
- *
- * 视觉风格遵循 HyperOS 设计语言，使用 Miuix 的 SquircleShape 实现
- * 小米标志性的平滑圆角效果。
+ * 以圆角卡片形式展示视频信息，包含封面图片、标题和描述。
+ * 使用 Miuix 的 Card 组件，遵循 HyperOS 设计语言。
  *
  * @param searchResult 搜索结果数据
- * @param onClick 点击回调，传递详情页 URL
+ * @param onClick 点击回调
  * @param modifier Modifier 修饰符
  */
 @Composable
@@ -64,7 +58,7 @@ fun VideoCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = SquircleShape(16.dp)
+        cornerRadius = 16.dp
     ) {
         Column {
             // 封面图片区域
@@ -72,7 +66,7 @@ fun VideoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .clip(SquircleShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MiuixTheme.colorScheme.surfaceVariant)
             ) {
                 if (searchResult.cover.isNotBlank()) {
@@ -82,7 +76,7 @@ fun VideoCard(
                         contentDescription = searchResult.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        onFailure = { /* 加载失败时显示占位背景 */ }
+                        onFailure = { }
                     )
                 }
             }
@@ -92,18 +86,18 @@ fun VideoCard(
                 // 标题
                 Text(
                     text = searchResult.title,
-                    style = MiuixTheme.textStyles.title3,
+                    style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // 描述（如果有）
+                // 描述
                 if (searchResult.description.isNotBlank()) {
                     Text(
                         text = searchResult.description,
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariant,
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
@@ -114,7 +108,7 @@ fun VideoCard(
                 if (searchResult.sourceName.isNotBlank()) {
                     Text(
                         text = searchResult.sourceName,
-                        style = MiuixTheme.textStyles.caption,
+                        style = MiuixTheme.textStyles.footnote2,
                         color = MiuixTheme.colorScheme.outline,
                         maxLines = 1,
                         modifier = Modifier.padding(top = 4.dp)

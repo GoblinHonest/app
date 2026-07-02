@@ -16,6 +16,7 @@
 
 package com.stark.miuix.ui.detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,20 +28,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
@@ -58,16 +49,12 @@ import kotlinx.coroutines.CoroutineScope
 /**
  * 视频详情页
  *
- * 展示视频完整信息：
- * - 顶部返回按钮 + 标题
- * - 封面图片区域
- * - 视频简介
- * - 剧集列表（点击直接播放）
+ * 展示视频完整信息：封面、简介、剧集列表。
  *
  * @param sourceName 视频源名称
  * @param detailUrl 详情页 URL
- * @param initialTitle 快速展示的初始标题（无需等待加载）
- * @param initialCoverUrl 初始封面（无需等待加载）
+ * @param initialTitle 初始标题
+ * @param initialCoverUrl 初始封面
  * @param videoRepository 视频仓库
  * @param sourceRepository 视频源仓库
  * @param onNavigateToPlayer 导航到播放页
@@ -95,10 +82,10 @@ fun DetailScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         // 顶部栏
         TopAppBar(
-            title = { Text(initialTitle.ifBlank { "视频详情" }) },
+            title = initialTitle.ifBlank { "视频详情" },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Text("←", style = MiuixTheme.textStyles.title3)
+                    Text("返回", style = MiuixTheme.textStyles.body2)
                 }
             }
         )
@@ -119,6 +106,7 @@ fun DetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(220.dp)
+                                .background(Color.Black)
                         ) {
                             if (video.cover.isNotBlank()) {
                                 val painterResource = asyncPainterResource(video.cover)
@@ -127,7 +115,7 @@ fun DetailScreen(
                                     contentDescription = video.title,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop,
-                                    onFailure = { /* 加载失败时显示占位背景 */ }
+                                    onFailure = { }
                                 )
                             }
                         }
@@ -138,13 +126,13 @@ fun DetailScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = video.title,
-                                style = MiuixTheme.textStyles.title1,
+                                style = MiuixTheme.textStyles.headline1,
                                 color = MiuixTheme.colorScheme.onSurface
                             )
                             if (video.status.isNotBlank()) {
                                 Text(
                                     text = video.status,
-                                    style = MiuixTheme.textStyles.caption,
+                                    style = MiuixTheme.textStyles.footnote1,
                                     color = MiuixTheme.colorScheme.primary,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
@@ -153,7 +141,7 @@ fun DetailScreen(
                                 Text(
                                     text = video.description,
                                     style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariant,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
                             }
@@ -165,7 +153,7 @@ fun DetailScreen(
                         item {
                             Text(
                                 text = "剧集列表",
-                                style = MiuixTheme.textStyles.title3,
+                                style = MiuixTheme.textStyles.body1,
                                 color = MiuixTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
@@ -187,13 +175,13 @@ fun DetailScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "加载失败",
-                            style = MiuixTheme.textStyles.title3,
+                            style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.error
                         )
                         Text(
                             text = state.message,
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariant,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -201,9 +189,4 @@ fun DetailScreen(
             }
         }
     }
-}
-
-@Composable
-private fun rememberCoroutineScope(): CoroutineScope {
-    return kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
 }

@@ -17,6 +17,7 @@
 package com.stark.miuix.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,16 +26,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.stark.miuix.data.repository.SourceRepository
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.SquircleShape
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Switch
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * 设置页
@@ -42,7 +44,6 @@ import kotlinx.coroutines.CoroutineScope
  * 使用 Miuix Preference 风格组件展示设置项：
  * - 主题设置（跟随系统/亮色/暗色）
  * - 动态取色开关
- * - 种子色选择
  * - 缓存管理
  * - 关于信息
  *
@@ -58,10 +59,10 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("设置") },
+            title = "设置",
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Text("←", style = MiuixTheme.textStyles.title3)
+                    Text("返回", style = MiuixTheme.textStyles.body2)
                 }
             }
         )
@@ -75,7 +76,7 @@ fun SettingsScreen(
             // 主题设置区域
             Text(
                 text = "主题",
-                style = MiuixTheme.textStyles.title3,
+                style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -86,7 +87,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = SquircleShape(12.dp)
+                    cornerRadius = 12.dp
                 ) {
                     Text(
                         text = mode.label,
@@ -103,44 +104,40 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                shape = SquircleShape(12.dp)
+                cornerRadius = 12.dp
             ) {
-                Column {
-                    // 动态取色
-                    androidx.compose.foundation.layout.Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "动态取色",
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Switch(
-                            checked = settings.dynamicColor,
-                            onCheckedChange = { viewModel.setDynamicColor(it) }
-                        )
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "动态取色",
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = settings.dynamicColor,
+                        onCheckedChange = { viewModel.setDynamicColor(it) }
+                    )
                 }
             }
 
             // 播放设置
             Text(
                 text = "播放",
-                style = MiuixTheme.textStyles.title3,
+                style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            // 播放器选择
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                shape = SquircleShape(12.dp)
+                cornerRadius = 12.dp
             ) {
                 Text(
                     text = "播放器设置",
@@ -153,7 +150,7 @@ fun SettingsScreen(
             // 缓存管理
             Text(
                 text = "存储",
-                style = MiuixTheme.textStyles.title3,
+                style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -162,40 +159,38 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                shape = SquircleShape(12.dp)
+                cornerRadius = 12.dp
             ) {
-                Column {
-                    androidx.compose.foundation.layout.Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "缓存大小",
-                                style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = settings.cacheSize,
-                                style = MiuixTheme.textStyles.caption,
-                                color = MiuixTheme.colorScheme.outline
-                            )
-                        }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "清除",
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.primary
+                            text = "缓存大小",
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = settings.cacheSize,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.outline
                         )
                     }
+                    Text(
+                        text = "清除",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.primary
+                    )
                 }
             }
 
             // 关于
             Text(
                 text = "关于",
-                style = MiuixTheme.textStyles.title3,
+                style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -204,7 +199,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                shape = SquircleShape(12.dp)
+                cornerRadius = 12.dp
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
@@ -214,7 +209,7 @@ fun SettingsScreen(
                     )
                     Text(
                         text = "基于 Compose Multiplatform + Miuix",
-                        style = MiuixTheme.textStyles.caption,
+                        style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.outline,
                         modifier = Modifier.padding(top = 4.dp)
                     )
@@ -222,9 +217,4 @@ fun SettingsScreen(
             }
         }
     }
-}
-
-@Composable
-private fun rememberCoroutineScope(): CoroutineScope {
-    return kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
 }

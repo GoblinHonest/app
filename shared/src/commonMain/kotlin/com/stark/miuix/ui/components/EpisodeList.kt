@@ -28,19 +28,14 @@ import com.stark.miuix.data.model.Episode
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.SquircleShape
 
 /**
  * 剧集列表组件
  *
- * 以卡片列表形式展示剧集信息，每行显示：
- * - 剧集序号/名称
- * - 播放按钮文字
- *
- * 使用 Miuix 的 SquircleShape 卡片，保持 HyperOS 视觉风格。
+ * 以卡片列表形式展示剧集信息，每行显示剧集名称和播放按钮。
  *
  * @param episodes 剧集列表
- * @param onEpisodeClick 剧集点击回调，传递剧集 URL
+ * @param onEpisodeClick 剧集点击回调
  * @param modifier Modifier 修饰符
  */
 @Composable
@@ -55,7 +50,7 @@ fun EpisodeList(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .clickable { onEpisodeClick(episode) },
-            shape = SquircleShape(12.dp)
+            cornerRadius = 12.dp
         ) {
             Row(
                 modifier = Modifier

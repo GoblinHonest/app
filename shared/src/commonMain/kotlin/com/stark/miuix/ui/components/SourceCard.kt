@@ -30,17 +30,11 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.SquircleShape
 
 /**
  * 视频源卡片组件
  *
- * 展示视频源的详细信息，包括：
- * - 源名称和域名
- * - 启用/禁用开关
- * - 分组信息（如果有）
- *
- * 用于视频源管理页面，每个卡片代表一个已导入的视频源。
+ * 展示视频源的详细信息，包括名称、域名、分组和启用/禁用开关。
  *
  * @param source 视频源数据
  * @param onToggle 切换启用状态的回调
@@ -58,7 +52,7 @@ fun SourceCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        shape = SquircleShape(12.dp)
+        cornerRadius = 12.dp
     ) {
         Row(
             modifier = Modifier
@@ -68,26 +62,23 @@ fun SourceCard(
         ) {
             // 源信息
             Column(modifier = Modifier.weight(1f)) {
-                // 源名称
                 Text(
                     text = source.sourceName,
-                    style = MiuixTheme.textStyles.title3,
+                    style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onSurface
                 )
 
-                // 域名
                 Text(
                     text = StringUtils.extractDomain(source.sourceUrl),
-                    style = MiuixTheme.textStyles.caption,
+                    style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.outline,
                     modifier = Modifier.padding(top = 2.dp)
                 )
 
-                // 分组（如果有）
                 if (source.sourceGroup.isNotBlank()) {
                     Text(
                         text = source.sourceGroup,
-                        style = MiuixTheme.textStyles.caption,
+                        style = MiuixTheme.textStyles.footnote2,
                         color = MiuixTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 2.dp)
                     )

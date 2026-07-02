@@ -24,17 +24,9 @@ import kotlinx.serialization.json.Json
  * JSON 工具类
  *
  * 提供 JSON 序列化/反序列化功能，用于视频源的导入导出。
- * 内部使用 kotlinx.serialization，确保跨平台兼容性。
  */
 object JsonUtils {
 
-    /**
-     * 配置 JSON 实例
-     *
-     * - ignoreUnknownKeys: 忽略未知字段，向前兼容新版本视频源格式
-     * - prettyPrint: 格式化输出，便于人类阅读和调试
-     * - isLenient: 宽松模式，容忍非标准 JSON
-     */
     private val json = Json {
         ignoreUnknownKeys = true
         prettyPrint = true
@@ -43,14 +35,6 @@ object JsonUtils {
 
     /**
      * 将 JSON 字符串解码为视频源列表
-     *
-     * 支持两种格式：
-     * - JSON Array: 批量导入多个视频源
-     * - JSON Object: 单个视频源
-     *
-     * @param jsonString JSON 字符串
-     * @return 解析后的视频源列表
-     * @throws kotlinx.serialization.SerializationException JSON 格式错误
      */
     fun decodeVideoSources(jsonString: String): List<VideoSource> {
         val trimmed = jsonString.trim()
@@ -63,9 +47,6 @@ object JsonUtils {
 
     /**
      * 将视频源列表编码为 JSON 字符串
-     *
-     * @param sources 视频源列表
-     * @return 格式化的 JSON 字符串
      */
     fun encodeVideoSources(sources: List<VideoSource>): String {
         return json.encodeToString(sources)
@@ -73,31 +54,8 @@ object JsonUtils {
 
     /**
      * 将单个视频源编码为 JSON 字符串
-     *
-     * @param source 视频源
-     * @return 格式化的 JSON 字符串
      */
     fun encodeVideoSource(source: VideoSource): String {
         return json.encodeToString(source)
-    }
-
-    /**
-     * 通用 JSON 解码
-     *
-     * @param jsonString JSON 字符串
-     * @return 解析后的对象
-     */
-    inline fun <reified T> decode(jsonString: String): T {
-        return json.decodeFromString(jsonString)
-    }
-
-    /**
-     * 通用 JSON 编码
-     *
-     * @param obj 要序列化的对象
-     * @return JSON 字符串
-     */
-    inline fun <reified T> encode(obj: T): String {
-        return json.encodeToString(obj)
     }
 }
