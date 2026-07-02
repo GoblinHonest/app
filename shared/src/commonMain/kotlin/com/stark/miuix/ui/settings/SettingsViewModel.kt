@@ -27,14 +27,18 @@ import kotlinx.coroutines.launch
  * 设置页 UI 状态
  *
  * @property themeMode 主题模式
- * @property dynamicColor 是否启用 Monet 动态取色
- * @property seedColor 种子色（ARGB）
- * @property cacheSize 缓存大小描述
+ * @property dynamicColor 是否启用动态取色
+ * @property seedColor 种子色
+ * @property autoPlayNext 自动播放下一集
+ * @property backgroundPlay 后台继续播放
+ * @property cacheSize 缓存大小
  */
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val seedColor: Long = 0xFF3482FF,
+    val autoPlayNext: Boolean = true,
+    val backgroundPlay: Boolean = false,
     val cacheSize: String = "0 KB"
 )
 
@@ -48,8 +52,7 @@ enum class ThemeMode(val label: String) {
 /**
  * 设置页 ViewModel
  *
- * 管理应用设置项并同步到 [ThemeState] 全局单例，
- * 实现设置修改实时反映到 UI 主题。
+ * 管理主题配置和播放器选项，同步到 [ThemeState] 全局单例。
  */
 class SettingsViewModel(
     private val coroutineScope: CoroutineScope
@@ -57,25 +60,29 @@ class SettingsViewModel(
     private val _uiState = MutableStateFlow(SettingsState())
     val uiState: StateFlow<SettingsState> = _uiState.asStateFlow()
 
-    /** 切换主题模式，同步到全局 [ThemeState] */
     fun setThemeMode(mode: ThemeMode) {
         _uiState.value = _uiState.value.copy(themeMode = mode)
         ThemeState.setThemeMode(mode)
     }
 
-    /** 切换动态取色，同步到全局 [ThemeState] */
     fun setDynamicColor(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(dynamicColor = enabled)
         ThemeState.setDynamicColor(enabled)
     }
 
-    /** 设置种子色，同步到全局 [ThemeState] */
     fun setSeedColor(color: Long) {
         _uiState.value = _uiState.value.copy(seedColor = color)
         ThemeState.setSeedColor(color)
     }
 
-    /** 清除缓存 */
+    fun setAutoPlayNext(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(autoPlayNext = enabled)
+    }
+
+    fun setBackgroundPlay(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(backgroundPlay = enabled)
+    }
+
     fun clearCache() {
         coroutineScope.launch {
             _uiState.value = _uiState.value.copy(cacheSize = "0 KB")

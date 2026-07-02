@@ -96,9 +96,18 @@ fun SettingsScreen(
 
             // 播放设置
             SettingsSection(title = "播放") {
-                SettingsItem(title = "默认画质", subtitle = "自动")
-                SettingsItem(title = "自动播放下一集", subtitle = "开启")
-                SettingsItem(title = "后台播放", subtitle = "关闭")
+                SettingsSwitchItem(
+                    title = "自动播放下一集",
+                    subtitle = "当前剧集结束后自动播放下一集",
+                    checked = settings.autoPlayNext,
+                    onCheckedChange = { viewModel.setAutoPlayNext(it) }
+                )
+                SettingsSwitchItem(
+                    title = "后台播放",
+                    subtitle = "切换到其他应用时继续播放音频",
+                    checked = settings.backgroundPlay,
+                    onCheckedChange = { viewModel.setBackgroundPlay(it) }
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
