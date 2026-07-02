@@ -17,87 +17,80 @@
 package com.stark.miuix.ui.search
 
 import com.stark.miuix.data.model.SearchResult
-import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * 搜索页 UI 状态
- */
+/** 搜索页 UI 状态 */
 sealed interface SearchUiState {
-    /** 空闲状态，等待用户输入 */
     data object Idle : SearchUiState
-
-    /** 搜索中 */
     data object Searching : SearchUiState
-
-    /** 搜索成功
-     * @property keyword 搜索关键词
-     * @property results 搜索结果列表
-     */
-    data class Success(
-        val keyword: String,
-        val results: List<SearchResult>
-    ) : SearchUiState
-
-    /** 搜索失败
-     * @property keyword 搜索关键词
-     * @property message 错误信息
-     */
-    data class Error(
-        val keyword: String,
-        val message: String
-    ) : SearchUiState
+    data class Success(val keyword: String, val results: List<SearchResult>) : SearchUiState
+    data class Error(val keyword: String, val message: String) : SearchUiState
 }
 
 /**
  * 搜索页 ViewModel
  *
- * @property videoRepository 视频仓库
- * @property coroutineScope 协程作用域
+ * 内置 500ms 输入防抖：用户停止输入后自动触发搜索，
+ * 减少无效网络请求，提升响应流畅度。
  */
 class SearchViewModel(
     private val videoRepository: VideoRepository,
     private val coroutineScope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
-
-    /** 搜索 UI 状态 */
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
-    /** 搜索历史 */
     val searchHistory = videoRepository.searchHistory
 
-    /**
-     * 执行搜索
-     *
-     * @param keyword 搜索关键词
-     */
-    fun search(keyword: String) {
-        if (keyword.isBlank()) return
+    private var debounceJob: Job? = null
 
-        coroutineScope.launch {
-            _uiState.value = SearchUiState.Searching
-            val result = videoRepository.search(keyword)
-            result.fold(
-                onSuccess = { videos ->
-                    _uiState.value = SearchUiState.Success(keyword, videos)
-                },
-                onFailure = { error ->
-                    _uiState.value = SearchUiState.Error(keyword, error.message ?: "搜索失败")
-                }
-            )
+    /**
+     * 防抖搜索 — 每次输入变更调用，500ms 无新输入后自动执行
+     */
+    fun onQueryChanged(keyword: String) {
+        debounceJob?.cancel()
+        if (keyword.isBlank()) {
+            _uiState.value = SearchUiState.Idle
+            return
+        }
+        debounceJob = coroutineScope.launch {
+            delay(DEBOUNCE_MS)
+            executeSearch(keyword)
         }
     }
 
-    /**
-     * 清除搜索历史
-     */
+    /** 立即执行搜索（点击按钮或选择历史记录时） */
+    fun search(keyword: String) {
+        if (keyword.isBlank()) return
+        debounceJob?.cancel()
+        coroutineScope.launch { executeSearch(keyword) }
+    }
+
     fun clearHistory() {
         videoRepository.clearHistory()
+    }
+
+    private suspend fun executeSearch(keyword: String) {
+        _uiState.value = SearchUiState.Searching
+        val result = videoRepository.search(keyword)
+        result.fold(
+            onSuccess = { videos ->
+                _uiState.value = SearchUiState.Success(keyword, videos)
+            },
+            onFailure = { error ->
+                _uiState.value = SearchUiState.Error(keyword, error.message ?: "搜索失败")
+            }
+        )
+    }
+
+    companion object {
+        private const val DEBOUNCE_MS = 500L
     }
 }

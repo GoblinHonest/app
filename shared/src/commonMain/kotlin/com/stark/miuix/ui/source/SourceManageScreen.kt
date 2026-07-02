@@ -16,13 +16,21 @@
 
 package com.stark.miuix.ui.source
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,20 +43,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.ui.components.SourceCard
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * 视频源管理页
  *
- * 功能：展示已导入的视频源列表、启用/禁用切换、导入 JSON 格式视频源。
- *
- * @param sourceRepository 视频源仓库
- * @param onNavigateBack 返回上一页
+ * 支持两种导入方式：
+ * - JSON 粘贴：直接粘贴视频源 JSON 配置
+ * - URL 订阅：输入远程订阅地址，自动拉取并解析
  */
 @Composable
 fun SourceManageScreen(
@@ -56,11 +64,12 @@ fun SourceManageScreen(
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val viewModel = SourceManageViewModel(sourceRepository, scope)
+    val viewModel = remember(sourceRepository) { SourceManageViewModel(sourceRepository, scope) }
     val sources by viewModel.sources.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     var importText by remember { mutableStateOf("") }
     var showImport by remember { mutableStateOf(false) }
+    var importMode by remember { mutableStateOf(ImportMode.JSON) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -72,70 +81,169 @@ fun SourceManageScreen(
             },
             actions = {
                 IconButton(onClick = { showImport = !showImport }) {
-                    Text("导入", style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.primary)
+                    Text(
+                        if (showImport) "收起" else "导入",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.primary
+                    )
                 }
             }
         )
 
-        // 导入区域
-        if (showImport) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                TextField(
-                    value = importText,
-                    onValueChange = { importText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "粘贴视频源 JSON..."
-                )
-                Text(
-                    text = "点击导入",
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .imePadding()
+        ) {
+            if (showImport) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    // 导入模式切换
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ImportMode.entries.forEach { mode ->
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { importMode = mode },
+                                cornerRadius = 10.dp
+                            ) {
+                                Text(
+                                    text = mode.label,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = if (importMode == mode) MiuixTheme.colorScheme.primary
+                                           else MiuixTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
 
-        // 导入状态提示
-        when (val state = uiState) {
-            is SourceManageUiState.ImportSuccess -> {
-                Text(
-                    text = "成功导入 ${state.count} 个视频源",
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            is SourceManageUiState.ImportError -> {
-                Text(
-                    text = state.message,
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.error,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            else -> {}
-        }
+                    Spacer(modifier = Modifier.height(12.dp))
 
-        // 视频源列表
-        if (sources.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "暂无视频源，请导入",
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(sources, key = { it.sourceName }) { source ->
-                    SourceCard(
-                        source = source,
-                        onToggle = { viewModel.toggleSource(source.sourceName) },
-                        onDelete = { viewModel.removeSource(source.sourceName) }
+                    Text(
+                        text = importMode.hint,
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    TextField(
+                        value = importText,
+                        onValueChange = { importText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = importMode.placeholder
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (importText.isNotBlank()) {
+                                    when (importMode) {
+                                        ImportMode.JSON -> viewModel.importSource(importText)
+                                        ImportMode.URL -> viewModel.importFromUrl(importText)
+                                    }
+                                    importText = ""
+                                }
+                            },
+                        cornerRadius = 12.dp
+                    ) {
+                        Text(
+                            text = "确认导入",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            // 状态提示
+            when (val state = uiState) {
+                is SourceManageUiState.Loading -> {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "正在导入...",
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.outline
+                        )
+                    }
+                }
+                is SourceManageUiState.ImportSuccess -> {
+                    Text(
+                        text = "成功导入 ${state.count} 个视频源",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                is SourceManageUiState.ImportError -> {
+                    Text(
+                        text = "导入失败: ${state.message}",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                else -> {}
+            }
+
+            // 视频源列表
+            if (sources.isNotEmpty()) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(sources, key = { it.sourceName }) { source ->
+                        SourceCard(
+                            source = source,
+                            onToggle = { viewModel.toggleSource(source.sourceName) },
+                            onDelete = { viewModel.removeSource(source.sourceName) }
+                        )
+                    }
+                }
+            } else if (!showImport) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "暂无视频源",
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        )
+                        Text(
+                            text = "点击右上角「导入」添加",
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.outline,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/** 导入模式 */
+private enum class ImportMode(val label: String, val hint: String, val placeholder: String) {
+    JSON("JSON 粘贴", "粘贴视频源 JSON 配置（支持单个或数组）：", "粘贴 JSON..."),
+    URL("URL 订阅", "输入视频源订阅地址，自动拉取配置：", "https://example.com/sources.json")
 }

@@ -16,6 +16,7 @@
 
 package com.stark.miuix.ui.settings
 
+import com.stark.miuix.theme.ThemeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,98 +28,57 @@ import kotlinx.coroutines.launch
  *
  * @property themeMode 主题模式
  * @property dynamicColor 是否启用 Monet 动态取色
- * @property seedColor 种子色（ARGB 格式）
- * @property videoSourcePath 视频源存储路径
+ * @property seedColor 种子色（ARGB）
  * @property cacheSize 缓存大小描述
  */
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val seedColor: Long = 0xFF3482FF,
-    val videoSourcePath: String = "",
     val cacheSize: String = "0 KB"
 )
 
-/**
- * 主题模式枚举
- */
+/** 主题模式枚举 */
 enum class ThemeMode(val label: String) {
-    /** 跟随系统 */
     SYSTEM("跟随系统"),
-    /** 强制亮色 */
     LIGHT("亮色模式"),
-    /** 强制暗色 */
     DARK("暗色模式")
 }
 
 /**
  * 设置页 ViewModel
  *
- * 管理应用设置项，包括主题配置、缓存管理等。
- * 使用 StateFlow 供 UI 层观察设置变化。
- *
- * @property coroutineScope 协程作用域
+ * 管理应用设置项并同步到 [ThemeState] 全局单例，
+ * 实现设置修改实时反映到 UI 主题。
  */
 class SettingsViewModel(
     private val coroutineScope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(SettingsState())
-
-    /** 设置 UI 状态 */
     val uiState: StateFlow<SettingsState> = _uiState.asStateFlow()
 
-    /**
-     * 切换主题模式
-     *
-     * @param mode 新的主题模式
-     */
+    /** 切换主题模式，同步到全局 [ThemeState] */
     fun setThemeMode(mode: ThemeMode) {
         _uiState.value = _uiState.value.copy(themeMode = mode)
+        ThemeState.setThemeMode(mode)
     }
 
-    /**
-     * 切换动态取色
-     *
-     * @param enabled 是否启用
-     */
+    /** 切换动态取色，同步到全局 [ThemeState] */
     fun setDynamicColor(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(dynamicColor = enabled)
+        ThemeState.setDynamicColor(enabled)
     }
 
-    /**
-     * 设置种子色
-     *
-     * @param color ARGB 格式的颜色值
-     */
+    /** 设置种子色，同步到全局 [ThemeState] */
     fun setSeedColor(color: Long) {
         _uiState.value = _uiState.value.copy(seedColor = color)
+        ThemeState.setSeedColor(color)
     }
 
-    /**
-     * 清除缓存
-     */
+    /** 清除缓存 */
     fun clearCache() {
         coroutineScope.launch {
-            // TODO: 实现实际缓存清除逻辑
             _uiState.value = _uiState.value.copy(cacheSize = "0 KB")
         }
-    }
-
-    /**
-     * 加载设置
-     *
-     * 从本地存储读取设置项。
-     */
-    fun loadSettings() {
-        // TODO: 从 DataStore/SharedPreferences 读取设置
-    }
-
-    /**
-     * 保存设置
-     *
-     * 将当前设置持久化到本地存储。
-     */
-    fun saveSettings() {
-        // TODO: 保存到 DataStore/SharedPreferences
     }
 }

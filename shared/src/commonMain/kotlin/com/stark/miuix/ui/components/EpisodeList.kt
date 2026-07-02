@@ -17,11 +17,11 @@
 package com.stark.miuix.ui.components
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.Episode
@@ -30,47 +30,37 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 剧集列表组件
+ * 剧集列表组件 — 流式标签布局
  *
- * 以卡片列表形式展示剧集信息，每行显示剧集名称和播放按钮。
+ * 使用 [FlowRow] 以标签云形式紧凑展示所有剧集，
+ * 适合集数较多的番剧/电视剧，比逐行卡片更节省空间。
  *
  * @param episodes 剧集列表
  * @param onEpisodeClick 剧集点击回调
  * @param modifier Modifier 修饰符
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EpisodeList(
     episodes: List<Episode>,
     onEpisodeClick: (Episode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    episodes.forEachIndexed { index, episode ->
-        Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .clickable { onEpisodeClick(episode) },
-            cornerRadius = 12.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+    FlowRow(
+        modifier = modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        episodes.forEachIndexed { index, episode ->
+            Card(
+                modifier = Modifier.clickable { onEpisodeClick(episode) },
+                cornerRadius = 10.dp
             ) {
-                // 剧集名称
                 Text(
                     text = episode.name.ifBlank { "第 ${index + 1} 集" },
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // 播放提示
-                Text(
-                    text = "播放",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.primary
+                    color = MiuixTheme.colorScheme.onSurface
                 )
             }
         }

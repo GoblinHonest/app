@@ -16,11 +16,18 @@
 
 package com.stark.miuix.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -34,12 +41,12 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * 视频源卡片组件
  *
- * 展示视频源的详细信息，包括名称、域名、分组和启用/禁用开关。
+ * 展示源的完整信息（名称、域名、分组、版本、备注），
+ * 提供启用/禁用开关和带确认的删除操作。
  *
  * @param source 视频源数据
- * @param onToggle 切换启用状态的回调
- * @param onDelete 删除视频源的回调
- * @param modifier Modifier 修饰符
+ * @param onToggle 切换启用状态回调
+ * @param onDelete 确认删除回调
  */
 @Composable
 fun SourceCard(
@@ -48,48 +55,120 @@ fun SourceCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         cornerRadius = 12.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 源信息
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = source.sourceName,
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurface
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = source.sourceName,
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = StringUtils.extractDomain(source.sourceUrl),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.outline,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Switch(
+                    checked = source.enabled,
+                    onCheckedChange = { onToggle() }
                 )
+            }
 
-                Text(
-                    text = StringUtils.extractDomain(source.sourceUrl),
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-
+            // 附加信息行
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 if (source.sourceGroup.isNotBlank()) {
                     Text(
                         text = source.sourceGroup,
                         style = MiuixTheme.textStyles.footnote2,
-                        color = MiuixTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = MiuixTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = "v${source.version}",
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.outline,
+                    modifier = Modifier.padding(start = if (source.sourceGroup.isNotBlank()) 8.dp else 0.dp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+
+                if (!showDeleteConfirm) {
+                    Text(
+                        text = "删除",
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.error,
+                        modifier = Modifier.clickable { showDeleteConfirm = true }
                     )
                 }
             }
 
-            // 启用/禁用开关
-            Switch(
-                checked = source.enabled,
-                onCheckedChange = { onToggle() }
-            )
+            // 删除确认区
+            if (showDeleteConfirm) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "确认删除此视频源?",
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "取消",
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.outline,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .clickable { showDeleteConfirm = false }
+                        )
+                        Text(
+                            text = "删除",
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.error,
+                            modifier = Modifier.clickable {
+                                onDelete()
+                                showDeleteConfirm = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // 备注
+            if (source.sourceComment.isNotBlank()) {
+                Text(
+                    text = source.sourceComment,
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.outline,
+                    modifier = Modifier.padding(top = 6.dp),
+                    maxLines = 2
+                )
+            }
         }
     }
 }

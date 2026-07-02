@@ -16,21 +16,24 @@
 
 package com.stark.miuix.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.stark.miuix.data.repository.SourceRepository
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
@@ -41,20 +44,18 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * 设置页
  *
- * 使用 Miuix Preference 风格组件展示设置项：
- * - 主题设置（跟随系统/亮色/暗色）
- * - 动态取色开关
- * - 缓存管理
+ * HyperOS 风格分组卡片布局，包含：
+ * - 主题配置（模式切换、动态取色）
+ * - 播放器设置
+ * - 存储管理（缓存清理）
  * - 关于信息
- *
- * @param onNavigateBack 返回上一页
  */
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val viewModel = SettingsViewModel(scope)
+    val viewModel = remember(scope) { SettingsViewModel(scope) }
     val settings by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -73,148 +74,176 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 8.dp)
         ) {
-            // 主题设置区域
-            Text(
-                text = "主题",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            // 主题设置
+            SettingsSection(title = "外观") {
+                ThemeMode.entries.forEach { mode ->
+                    SettingsItem(
+                        title = mode.label,
+                        selected = settings.themeMode == mode,
+                        onClick = { viewModel.setThemeMode(mode) }
+                    )
+                }
 
-            // 主题模式选择
-            ThemeMode.entries.forEach { mode ->
+                SettingsSwitchItem(
+                    title = "动态取色",
+                    subtitle = "基于壁纸自动生成配色方案",
+                    checked = settings.dynamicColor,
+                    onCheckedChange = { viewModel.setDynamicColor(it) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 播放设置
+            SettingsSection(title = "播放") {
+                SettingsItem(title = "默认画质", subtitle = "自动")
+                SettingsItem(title = "自动播放下一集", subtitle = "开启")
+                SettingsItem(title = "后台播放", subtitle = "关闭")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 存储
+            SettingsSection(title = "存储") {
+                SettingsItem(
+                    title = "缓存大小",
+                    subtitle = settings.cacheSize,
+                    actionText = "清除",
+                    onAction = { viewModel.clearCache() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 关于
+            SettingsSection(title = "关于") {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     cornerRadius = 12.dp
                 ) {
-                    Text(
-                        text = mode.label,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        style = MiuixTheme.textStyles.body1,
-                        color = if (settings.themeMode == mode) MiuixTheme.colorScheme.primary
-                                else MiuixTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // 动态取色开关
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                cornerRadius = 12.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "动态取色",
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = settings.dynamicColor,
-                        onCheckedChange = { viewModel.setDynamicColor(it) }
-                    )
-                }
-            }
-
-            // 播放设置
-            Text(
-                text = "播放",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                cornerRadius = 12.dp
-            ) {
-                Text(
-                    text = "播放器设置",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurface
-                )
-            }
-
-            // 缓存管理
-            Text(
-                text = "存储",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                cornerRadius = 12.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "缓存大小",
+                            text = "Miuix 视频聚合",
                             style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = settings.cacheSize,
+                            text = "v1.0.0 · Compose Multiplatform + Miuix",
                             style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.outline
+                            color = MiuixTheme.colorScheme.outline,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
-                    Text(
-                        text = "清除",
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.primary
-                    )
                 }
             }
+        }
+    }
+}
 
-            // 关于
-            Text(
-                text = "关于",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+/** 设置项分组标题 */
+@Composable
+private fun SettingsSection(title: String, content: @Composable () -> Unit) {
+    Text(
+        text = title,
+        style = MiuixTheme.textStyles.footnote1,
+        color = MiuixTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+    content()
+}
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                cornerRadius = 12.dp
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+/** 可选中的设置项 */
+@Composable
+private fun SettingsItem(
+    title: String,
+    subtitle: String = "",
+    selected: Boolean = false,
+    actionText: String = "",
+    onClick: () -> Unit = {},
+    onAction: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
+        cornerRadius = 12.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.body1,
+                    color = if (selected) MiuixTheme.colorScheme.primary
+                            else MiuixTheme.colorScheme.onSurface
+                )
+                if (subtitle.isNotBlank()) {
                     Text(
-                        text = "Miuix 视频聚合 v1.0.0",
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "基于 Compose Multiplatform + Miuix",
+                        text = subtitle,
                         style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.outline,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
             }
+            if (actionText.isNotBlank()) {
+                Text(
+                    text = actionText,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onAction)
+                )
+            }
+        }
+    }
+}
+
+/** 带开关的设置项 */
+@Composable
+private fun SettingsSwitchItem(
+    title: String,
+    subtitle: String = "",
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        cornerRadius = 12.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.onSurface
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.outline,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
         }
     }
 }

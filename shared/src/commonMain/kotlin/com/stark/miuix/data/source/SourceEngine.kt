@@ -23,8 +23,12 @@ import com.stark.miuix.data.model.VideoSource
 /**
  * 视频源引擎接口
  *
- * 定义了视频源的核心操作能力，包括搜索、获取分类内容、
- * 获取视频详情和解析播放地址。所有实现都应当是协程安全的。
+ * 定义从单个视频源获取数据的四种核心能力。
+ * 实现类 [SourceEngineImpl] 通过 [NetworkClient] + [RuleParser]
+ * 完成「请求页面 → 规则解析 → 结构化数据」的完整链路。
+ *
+ * 所有方法均为 suspend，返回 [Result] 封装成功/失败，
+ * 调用方无需 try-catch。
  */
 interface SourceEngine {
 

@@ -17,8 +17,12 @@
 package com.stark.miuix.ui.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,37 +32,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.stark.miuix.data.model.Favorite
+import com.stark.miuix.data.model.WatchHistory
 import com.stark.miuix.data.repository.SourceRepository
+import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.EpisodeList
+import com.stark.miuix.ui.components.ErrorStateView
+import com.stark.miuix.ui.components.ShimmerVideoGrid
+import com.stark.miuix.util.ClipboardUtils
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * 视频详情页
  *
- * 展示视频完整信息：封面、简介、剧集列表。
- *
- * @param sourceName 视频源名称
- * @param detailUrl 详情页 URL
- * @param initialTitle 初始标题
- * @param initialCoverUrl 初始封面
- * @param videoRepository 视频仓库
- * @param sourceRepository 视频源仓库
- * @param onNavigateToPlayer 导航到播放页
- * @param onNavigateBack 返回上一页
+ * 沉浸式封面 + 渐变蒙版 + 收藏按钮 + 剧集列表。
+ * 进入详情页时自动记录到观看历史。
  */
 @Composable
 fun DetailScreen(
@@ -68,45 +74,87 @@ fun DetailScreen(
     initialCoverUrl: String,
     videoRepository: VideoRepository,
     sourceRepository: SourceRepository,
+    userDataRepository: UserDataRepository,
     onNavigateToPlayer: (String, String, String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val viewModel = DetailViewModel(videoRepository, sourceRepository, scope)
+    val viewModel = remember(videoRepository, sourceRepository, scope) {
+        DetailViewModel(videoRepository, sourceRepository, scope)
+    }
     val uiState by viewModel.uiState.collectAsState()
+    val videoId = detailUrl.hashCode().toString()
+    var isFavorite by remember { mutableStateOf(userDataRepository.isFavorite(videoId)) }
+    val copyToClipboard = ClipboardUtils.rememberCopyAction()
+    var descExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(detailUrl) {
         viewModel.loadDetail(sourceName, detailUrl)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 顶部栏
         TopAppBar(
             title = initialTitle.ifBlank { "视频详情" },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
                     Text("返回", style = MiuixTheme.textStyles.body2)
                 }
+            },
+            actions = {
+                IconButton(onClick = {
+                    copyToClipboard("$initialTitle\n$detailUrl")
+                }) {
+                    Text("分享", style = MiuixTheme.textStyles.body2)
+                }
+                IconButton(onClick = {
+                    val fav = Favorite(
+                        videoId = videoId,
+                        title = initialTitle,
+                        cover = initialCoverUrl,
+                        sourceName = sourceName,
+                        detailUrl = detailUrl
+                    )
+                    isFavorite = userDataRepository.toggleFavorite(fav)
+                }) {
+                    Text(
+                        text = if (isFavorite) "已收藏" else "收藏",
+                        style = MiuixTheme.textStyles.body2,
+                        color = if (isFavorite) MiuixTheme.colorScheme.primary
+                               else MiuixTheme.colorScheme.onSurface
+                    )
+                }
             }
         )
 
         when (val state = uiState) {
             is DetailUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ShimmerVideoGrid(columns = 1, itemCount = 1)
             }
 
             is DetailUiState.Success -> {
                 val video = state.video
+
+                // 加载成功后记录观看历史
+                LaunchedEffect(video) {
+                    userDataRepository.addWatchHistory(
+                        WatchHistory(
+                            videoId = videoId,
+                            title = video.title,
+                            cover = video.cover,
+                            sourceName = sourceName,
+                            detailUrl = detailUrl
+                        )
+                    )
+                }
+
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    // 封面
+                    // 封面 + 渐变蒙版
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(220.dp)
-                                .background(Color.Black)
+                                .height(240.dp)
+                                .background(Color(0xFF1A1A1A))
                         ) {
                             if (video.cover.isNotBlank()) {
                                 val painterResource = asyncPainterResource(video.cover)
@@ -118,30 +166,70 @@ fun DetailScreen(
                                     onFailure = { }
                                 )
                             }
-                        }
-                    }
-
-                    // 视频信息
-                    item {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color.Black.copy(alpha = 0.6f)
+                                            ),
+                                            startY = 100f
+                                        )
+                                    )
+                            )
                             Text(
                                 text = video.title,
                                 style = MiuixTheme.textStyles.headline1,
-                                color = MiuixTheme.colorScheme.onSurface
+                                color = Color.White,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(16.dp)
                             )
-                            if (video.status.isNotBlank()) {
+                        }
+                    }
+
+                    // 视频信息卡片
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            cornerRadius = 12.dp
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                if (video.status.isNotBlank()) {
+                                    Text(
+                                        text = video.status,
+                                        style = MiuixTheme.textStyles.footnote1,
+                                        color = MiuixTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                if (video.description.isNotBlank()) {
+                                    Text(
+                                        text = video.description,
+                                        style = MiuixTheme.textStyles.body2,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        maxLines = if (descExpanded) Int.MAX_VALUE else 3,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = if (descExpanded) "收起" else "展开",
+                                        style = MiuixTheme.textStyles.footnote1,
+                                        color = MiuixTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .padding(top = 4.dp)
+                                            .clickable { descExpanded = !descExpanded }
+                                    )
+                                }
                                 Text(
-                                    text = video.status,
-                                    style = MiuixTheme.textStyles.footnote1,
-                                    color = MiuixTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                            if (video.description.isNotBlank()) {
-                                Text(
-                                    text = video.description,
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    text = "来源: $sourceName",
+                                    style = MiuixTheme.textStyles.footnote2,
+                                    color = MiuixTheme.colorScheme.outline,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
                             }
@@ -151,12 +239,19 @@ fun DetailScreen(
                     // 剧集列表
                     if (video.episodes.isNotEmpty()) {
                         item {
-                            Text(
-                                text = "剧集列表",
-                                style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "剧集 (${video.episodes.size})",
+                                    style = MiuixTheme.textStyles.body1,
+                                    color = MiuixTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                         item {
                             EpisodeList(
@@ -171,21 +266,10 @@ fun DetailScreen(
             }
 
             is DetailUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "加载失败",
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.error
-                        )
-                        Text(
-                            text = state.message,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                }
+                ErrorStateView(
+                    message = state.message,
+                    onRetry = { viewModel.loadDetail(sourceName, detailUrl) }
+                )
             }
         }
     }

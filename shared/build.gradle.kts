@@ -48,6 +48,15 @@ kotlin {
 
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.datetime)
+            }
+        }
+
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.core)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
             }
         }
 
@@ -56,6 +65,8 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.lifecycle.viewmodel)
+                implementation("androidx.media3:media3-exoplayer:1.5.1")
+                implementation("androidx.media3:media3-ui:1.5.1")
             }
         }
 
@@ -72,15 +83,24 @@ kotlin {
                 implementation(libs.ktor.client.js)
             }
         }
+
+        val iosMain by creating {
+            dependsOn(commonMain)
+            dependencies {
+                implementation(libs.ktor.client.darwin)
+            }
+        }
+        val iosArm64Main by getting { dependsOn(iosMain) }
+        val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
     }
 }
 
 android {
     namespace = "com.stark.miuix.shared"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 33
     }
 
     compileOptions {

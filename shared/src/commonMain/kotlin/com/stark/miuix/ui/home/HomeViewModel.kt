@@ -21,96 +21,104 @@ import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * 首页 UI 状态
- *
- * 使用密封接口定义首页的所有可能状态，确保状态管理的类型安全。
- */
+/** 首页 UI 状态 */
 sealed interface HomeUiState {
-    /** 加载中状态 */
     data object Loading : HomeUiState
-
-    /** 成功加载状态
-     * @property videos 推荐视频列表
-     * @property sources 已启用的视频源列表
-     */
     data class Success(
         val videos: List<SearchResult>,
         val sources: List<VideoSource>
     ) : HomeUiState
-
-    /** 错误状态
-     * @property message 错误信息
-     */
     data class Error(val message: String) : HomeUiState
 }
 
 /**
- * 首页 ViewModel
+ * 首页 ViewModel — 多源聚合推荐
  *
- * 管理首页的业务逻辑和 UI 状态，包括：
- * - 加载推荐视频
- * - 管理视频源列表
- * - 处理用户交互
- *
- * @property videoRepository 视频仓库
- * @property sourceRepository 视频源仓库
- * @property coroutineScope 协程作用域
+ * 并行从所有已启用视频源拉取分类视频，
+ * 每个源最多取 [PER_SOURCE_LIMIT] 条，合并后交叉排列。
+ * 单个源失败不影响其他源的结果（静默降级）。
  */
 class HomeViewModel(
     private val videoRepository: VideoRepository,
     private val sourceRepository: SourceRepository,
-    private val coroutineScope: CoroutineScope
+    private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-
-    /** 首页 UI 状态 */
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    /**
-     * 加载首页数据
-     *
-     * 从所有已启用的视频源获取分类视频，合并后展示。
-     * 如果没有启用的视频源，显示空状态。
-     */
-    fun loadVideos() {
-        coroutineScope.launch {
-            _uiState.value = HomeUiState.Loading
-            try {
-                val sources = sourceRepository.getEnabledSources()
-                if (sources.isEmpty()) {
-                    _uiState.value = HomeUiState.Success(
-                        videos = emptyList(),
-                        sources = emptyList()
-                    )
-                    return@launch
-                }
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-                // 从第一个启用的源获取分类视频
-                val result = videoRepository.getCategoryVideos(sources.first())
-                result.fold(
-                    onSuccess = { videos ->
-                        _uiState.value = HomeUiState.Success(
-                            videos = videos,
-                            sources = sources
-                        )
-                    },
-                    onFailure = { error ->
-                        _uiState.value = HomeUiState.Error(
-                            error.message ?: "加载失败"
-                        )
+    /** 首次加载 */
+    fun loadVideos() {
+        scope.launch {
+            if (_uiState.value !is HomeUiState.Success) {
+                _uiState.value = HomeUiState.Loading
+            }
+            fetchData()
+        }
+    }
+
+    /** 下拉刷新 — 不切换到 Loading 态 */
+    fun refresh() {
+        scope.launch {
+            _isRefreshing.value = true
+            fetchData()
+            _isRefreshing.value = false
+        }
+    }
+
+    private suspend fun fetchData() {
+        try {
+            val sources = sourceRepository.getEnabledSources()
+            if (sources.isEmpty()) {
+                _uiState.value = HomeUiState.Success(videos = emptyList(), sources = emptyList())
+                return
+            }
+
+            val allVideos = coroutineScope {
+                sources.map { source ->
+                    async {
+                        videoRepository.getCategoryVideos(source)
+                            .getOrDefault(emptyList())
+                            .take(PER_SOURCE_LIMIT)
                     }
-                )
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(
-                    e.message ?: "未知错误"
-                )
+                }.awaitAll()
+            }
+
+            val merged = interleave(allVideos)
+            _uiState.value = HomeUiState.Success(videos = merged, sources = sources)
+        } catch (e: Exception) {
+            _uiState.value = HomeUiState.Error(e.message ?: "加载失败")
+        }
+    }
+
+    /**
+     * 交叉合并多个列表
+     *
+     * 将 [[A1,A2,A3], [B1,B2]] 合并为 [A1,B1,A2,B2,A3]，
+     * 让不同源的内容均匀分布，避免单源霸屏。
+     */
+    private fun interleave(lists: List<List<SearchResult>>): List<SearchResult> {
+        val result = mutableListOf<SearchResult>()
+        val maxLen = lists.maxOfOrNull { it.size } ?: 0
+        for (i in 0 until maxLen) {
+            for (list in lists) {
+                if (i < list.size) result.add(list[i])
             }
         }
+        return result
+    }
+
+    companion object {
+        private const val PER_SOURCE_LIMIT = 12
     }
 }

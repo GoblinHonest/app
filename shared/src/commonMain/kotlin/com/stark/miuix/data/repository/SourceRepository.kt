@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Starter
+ * Copyright 2024 Stark Industries
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.stark.miuix.data.repository
 
 import com.stark.miuix.data.model.VideoSource
+import com.stark.miuix.data.storage.LocalStorage
 import com.stark.miuix.util.JsonUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,99 +26,56 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * 视频源仓库
  *
- * 管理视频源的增删改查操作，维护内存中的视频源列表状态。
- * 提供 StateFlow 供 UI 层观察视频源列表变化。
+ * 管理视频源的增删改查，通过 [LocalStorage] 自动持久化变更。
+ * [sources] StateFlow 驱动 UI 列表自动刷新。
  */
-class SourceRepository {
+class SourceRepository(private val storage: LocalStorage? = null) {
 
     private val _sources = MutableStateFlow<List<VideoSource>>(emptyList())
-
-    /** 当前所有视频源列表 */
     val sources: StateFlow<List<VideoSource>> = _sources.asStateFlow()
 
-    /**
-     * 获取所有已启用的视频源
-     *
-     * @return 已启用的视频源列表
-     */
-    fun getEnabledSources(): List<VideoSource> {
-        return _sources.value.filter { it.enabled }
+    init {
+        storage?.let { _sources.value = it.loadSources() }
     }
 
-    /**
-     * 根据名称获取视频源
-     *
-     * @param name 源名称
-     * @return 匹配的视频源，未找到返回 null
-     */
-    fun getSourceByName(name: String): VideoSource? {
-        return _sources.value.find { it.sourceName == name }
-    }
+    fun getEnabledSources(): List<VideoSource> = _sources.value.filter { it.enabled }
 
-    /**
-     * 添加视频源
-     *
-     * 如果已存在同名源，将更新为新版本。
-     *
-     * @param source 要添加的视频源
-     */
+    fun getSourceByName(name: String): VideoSource? = _sources.value.find { it.sourceName == name }
+
     fun addSource(source: VideoSource) {
         val current = _sources.value.toMutableList()
-        val existingIndex = current.indexOfFirst { it.sourceName == source.sourceName }
-        if (existingIndex >= 0) {
-            current[existingIndex] = source
-        } else {
-            current.add(source)
-        }
+        val idx = current.indexOfFirst { it.sourceName == source.sourceName }
+        if (idx >= 0) current[idx] = source else current.add(source)
         _sources.value = current
+        persist()
     }
 
-    /**
-     * 从 JSON 字符串导入视频源
-     *
-     * 支持单个源（JSON Object）和批量源（JSON Array）两种格式。
-     *
-     * @param jsonString JSON 格式的视频源配置
-     * @return 成功导入的源数量
-     */
-    fun importFromJson(jsonString: String): Result<Int> {
-        return runCatching {
-            val imported = JsonUtils.decodeVideoSources(jsonString)
-            imported.forEach { addSource(it) }
-            imported.size
-        }
+    fun importFromJson(jsonString: String): Result<Int> = runCatching {
+        val imported = JsonUtils.decodeVideoSources(jsonString)
+        imported.forEach { addSource(it) }
+        imported.size
     }
 
-    /**
-     * 删除视频源
-     *
-     * @param sourceName 要删除的源名称
-     */
+    fun initWithDefaultsIfEmpty(json: String) {
+        if (_sources.value.isNotEmpty()) return
+        importFromJson(json)
+    }
+
     fun removeSource(sourceName: String) {
         _sources.value = _sources.value.filter { it.sourceName != sourceName }
+        persist()
     }
 
-    /**
-     * 切换视频源启用状态
-     *
-     * @param sourceName 源名称
-     */
     fun toggleSource(sourceName: String) {
-        _sources.value = _sources.value.map { source ->
-            if (source.sourceName == sourceName) {
-                source.copy(enabled = !source.enabled)
-            } else {
-                source
-            }
+        _sources.value = _sources.value.map { s ->
+            if (s.sourceName == sourceName) s.copy(enabled = !s.enabled) else s
         }
+        persist()
     }
 
-    /**
-     * 导出所有视频源为 JSON 字符串
-     *
-     * @return JSON 格式的视频源配置
-     */
-    fun exportToJson(): String {
-        return JsonUtils.encodeVideoSources(_sources.value)
+    fun exportToJson(): String = JsonUtils.encodeVideoSources(_sources.value)
+
+    private fun persist() {
+        storage?.saveSources(_sources.value)
     }
 }

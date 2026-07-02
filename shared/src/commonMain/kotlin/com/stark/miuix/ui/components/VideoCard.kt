@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -41,12 +42,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * 视频卡片组件
  *
- * 以圆角卡片形式展示视频信息，包含封面图片、标题和描述。
- * 使用 Miuix 的 Card 组件，遵循 HyperOS 设计语言。
- *
- * @param searchResult 搜索结果数据
- * @param onClick 点击回调
- * @param modifier Modifier 修饰符
+ * 以圆角卡片形式展示视频信息：封面 + 标题 + 来源标签。
+ * 封面区域具备加载中占位背景和加载失败兜底显示。
  */
 @Composable
 fun VideoCard(
@@ -61,13 +58,14 @@ fun VideoCard(
         cornerRadius = 16.dp
     ) {
         Column {
-            // 封面图片区域
+            // 封面图片
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MiuixTheme.colorScheme.surfaceVariant)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(MiuixTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
                 if (searchResult.cover.isNotBlank()) {
                     val painterResource = asyncPainterResource(searchResult.cover)
@@ -76,23 +74,40 @@ fun VideoCard(
                         contentDescription = searchResult.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        onFailure = { }
+                        onLoading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MiuixTheme.colorScheme.surfaceVariant)
+                            )
+                        },
+                        onFailure = {
+                            Text(
+                                text = "封面加载失败",
+                                style = MiuixTheme.textStyles.footnote2,
+                                color = MiuixTheme.colorScheme.outline
+                            )
+                        }
+                    )
+                } else {
+                    Text(
+                        text = searchResult.title.take(1),
+                        style = MiuixTheme.textStyles.headline1,
+                        color = MiuixTheme.colorScheme.outline
                     )
                 }
             }
 
-            // 视频信息区域
+            // 视频信息
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                // 标题
                 Text(
                     text = searchResult.title,
                     style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // 描述
                 if (searchResult.description.isNotBlank()) {
                     Text(
                         text = searchResult.description,
@@ -104,12 +119,11 @@ fun VideoCard(
                     )
                 }
 
-                // 来源标签
                 if (searchResult.sourceName.isNotBlank()) {
                     Text(
                         text = searchResult.sourceName,
                         style = MiuixTheme.textStyles.footnote2,
-                        color = MiuixTheme.colorScheme.outline,
+                        color = MiuixTheme.colorScheme.primary,
                         maxLines = 1,
                         modifier = Modifier.padding(top = 4.dp)
                     )

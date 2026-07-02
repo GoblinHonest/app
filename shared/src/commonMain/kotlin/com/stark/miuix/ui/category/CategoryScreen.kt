@@ -16,37 +16,44 @@
 
 package com.stark.miuix.ui.category
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
-import com.stark.miuix.ui.components.VideoGrid
+import com.stark.miuix.ui.components.ErrorStateView
+import com.stark.miuix.ui.components.ShimmerVideoGrid
+import com.stark.miuix.ui.components.VideoCard
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlinx.coroutines.CoroutineScope
 
 /**
- * 分类页
+ * 分类页 — 带无限滚动分页
  *
- * 按分类展示视频列表，支持翻页加载更多。
- *
- * @param sourceName 视频源名称
- * @param categoryUrl 分类 URL
- * @param videoRepository 视频仓库
- * @param sourceRepository 视频源仓库
- * @param onNavigateToDetail 导航到详情页
- * @param onNavigateBack 返回上一页
+ * 滚动到底部倒数第 3 项时自动触发下一页加载，
+ * 底部显示加载指示器。
  */
 @Composable
 fun CategoryScreen(
@@ -58,7 +65,9 @@ fun CategoryScreen(
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val viewModel = CategoryViewModel(videoRepository, sourceRepository, scope)
+    val viewModel = remember(videoRepository, sourceRepository, scope) {
+        CategoryViewModel(videoRepository, sourceRepository, scope)
+    }
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(categoryUrl) {
@@ -77,9 +86,7 @@ fun CategoryScreen(
 
         when (val state = uiState) {
             is CategoryUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ShimmerVideoGrid()
             }
             is CategoryUiState.Success -> {
                 if (state.videos.isEmpty()) {
@@ -91,22 +98,65 @@ fun CategoryScreen(
                         )
                     }
                 } else {
-                    VideoGrid(
-                        videos = state.videos,
-                        onVideoClick = { video ->
-                            onNavigateToDetail(video.sourceName, video.url, video.title, video.cover)
+                    val gridState = rememberLazyGridState()
+
+                    // 滚动到底部触发加载更多
+                    val shouldLoadMore by remember {
+                        derivedStateOf {
+                            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                            val totalItems = gridState.layoutInfo.totalItemsCount
+                            lastVisible >= totalItems - 3 && state.hasMore && !state.isLoadingMore
                         }
-                    )
+                    }
+
+                    LaunchedEffect(shouldLoadMore) {
+                        if (shouldLoadMore) {
+                            viewModel.loadMore(sourceName, categoryUrl)
+                        }
+                    }
+
+                    LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Adaptive(minSize = 150.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(
+                            items = state.videos,
+                            key = { it.url }
+                        ) { video ->
+                            VideoCard(
+                                searchResult = video,
+                                onClick = {
+                                    onNavigateToDetail(
+                                        video.sourceName, video.url, video.title, video.cover
+                                    )
+                                }
+                            )
+                        }
+
+                        // 底部加载指示器
+                        if (state.isLoadingMore) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+                    }
                 }
             }
             is CategoryUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = state.message,
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.error
-                    )
-                }
+                ErrorStateView(
+                    message = state.message,
+                    onRetry = { viewModel.loadCategoryVideos(sourceName, categoryUrl) }
+                )
             }
         }
     }

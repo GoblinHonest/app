@@ -25,34 +25,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * 分类页 UI 状态
- */
+/** 分类页 UI 状态 */
 sealed interface CategoryUiState {
-    /** 加载中 */
     data object Loading : CategoryUiState
-
-    /** 加载成功
-     * @property videos 分类下的视频列表
-     * @property currentCategory 当前分类名称
-     */
     data class Success(
         val videos: List<SearchResult>,
-        val currentCategory: String = ""
+        val hasMore: Boolean = true,
+        val isLoadingMore: Boolean = false
     ) : CategoryUiState
-
-    /** 加载失败
-     * @property message 错误信息
-     */
     data class Error(val message: String) : CategoryUiState
 }
 
 /**
  * 分类页 ViewModel
  *
- * @property videoRepository 视频仓库
- * @property sourceRepository 视频源仓库
- * @property coroutineScope 协程作用域
+ * 支持分页加载：首次加载显示骨架屏，
+ * 滚动到底部时追加下一页数据到已有列表。
  */
 class CategoryViewModel(
     private val videoRepository: VideoRepository,
@@ -60,45 +48,73 @@ class CategoryViewModel(
     private val coroutineScope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow<CategoryUiState>(CategoryUiState.Loading)
-
-    /** 分类页 UI 状态 */
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    /** 当前页码 */
     private var currentPage = 1
+    private var isLoadingMore = false
+    private val allVideos = mutableListOf<SearchResult>()
 
-    /**
-     * 加载分类视频
-     *
-     * @param sourceName 视频源名称
-     * @param categoryUrl 分类 URL
-     * @param page 页码
-     */
-    fun loadCategoryVideos(sourceName: String, categoryUrl: String, page: Int = 1) {
+    /** 首次加载 — 清空已有数据，从第 1 页开始 */
+    fun loadCategoryVideos(sourceName: String, categoryUrl: String) {
         coroutineScope.launch {
+            currentPage = 1
+            allVideos.clear()
             _uiState.value = CategoryUiState.Loading
+
             val source = sourceRepository.getSourceByName(sourceName)
             if (source == null) {
                 _uiState.value = CategoryUiState.Error("视频源不存在")
                 return@launch
             }
-            currentPage = page
-            val result = videoRepository.getCategoryVideos(source, categoryUrl, page)
+
+            val result = videoRepository.getCategoryVideos(source, categoryUrl, 1)
             result.fold(
                 onSuccess = { videos ->
-                    _uiState.value = CategoryUiState.Success(videos)
+                    allVideos.addAll(videos)
+                    _uiState.value = CategoryUiState.Success(
+                        videos = allVideos.toList(),
+                        hasMore = videos.size >= PAGE_SIZE
+                    )
                 },
-                onFailure = { error ->
-                    _uiState.value = CategoryUiState.Error(error.message ?: "加载失败")
+                onFailure = { e ->
+                    _uiState.value = CategoryUiState.Error(e.message ?: "加载失败")
                 }
             )
         }
     }
 
-    /**
-     * 加载下一页
-     */
-    fun loadNextPage(sourceName: String, categoryUrl: String) {
-        loadCategoryVideos(sourceName, categoryUrl, currentPage + 1)
+    /** 加载下一页 — 追加到列表末尾 */
+    fun loadMore(sourceName: String, categoryUrl: String) {
+        if (isLoadingMore) return
+        val current = _uiState.value
+        if (current !is CategoryUiState.Success || !current.hasMore) return
+
+        isLoadingMore = true
+        _uiState.value = current.copy(isLoadingMore = true)
+
+        coroutineScope.launch {
+            val source = sourceRepository.getSourceByName(sourceName) ?: return@launch
+            val nextPage = currentPage + 1
+            val result = videoRepository.getCategoryVideos(source, categoryUrl, nextPage)
+
+            result.fold(
+                onSuccess = { videos ->
+                    currentPage = nextPage
+                    allVideos.addAll(videos)
+                    _uiState.value = CategoryUiState.Success(
+                        videos = allVideos.toList(),
+                        hasMore = videos.size >= PAGE_SIZE
+                    )
+                },
+                onFailure = {
+                    _uiState.value = current.copy(isLoadingMore = false)
+                }
+            )
+            isLoadingMore = false
+        }
+    }
+
+    companion object {
+        private const val PAGE_SIZE = 20
     }
 }

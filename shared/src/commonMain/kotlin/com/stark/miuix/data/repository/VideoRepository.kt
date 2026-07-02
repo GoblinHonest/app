@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Starter
+ * Copyright 2024 Stark Industries
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,75 +28,53 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * 视频仓库
+ * 视频仓库 — 业务层核心协调器
  *
- * 提供视频搜索、详情获取等操作，内部协调多个视频源引擎并行工作。
- * 搜索时会同时查询所有已启用的视频源，合并结果后返回。
+ * 职责：
+ * - 聚合搜索：并行查询所有已启用视频源，合并结果
+ * - 详情获取：代理 SourceEngine 的详情解析
+ * - 播放地址：代理 SourceEngine 的播放 URL 提取
+ * - 搜索历史：维护最近 20 条搜索关键词
  *
- * @property sourceEngine 视频源引擎
- * @property sourceRepository 视频源仓库（用于获取已启用源列表）
+ * 设计原则：上层 ViewModel 只依赖本仓库，不直接操作 SourceEngine。
  */
 class VideoRepository(
     private val sourceEngine: SourceEngine,
     private val sourceRepository: SourceRepository
 ) {
-
     private val _searchHistory = MutableStateFlow<List<String>>(emptyList())
 
-    /** 搜索历史记录 */
+    /** 搜索历史（最新在前，上限 20 条） */
     val searchHistory: StateFlow<List<String>> = _searchHistory.asStateFlow()
 
     /**
-     * 搜索视频
+     * 聚合搜索
      *
-     * 并行查询所有已启用的视频源，合并去重后返回结果。
-     *
-     * @param keyword 搜索关键词
-     * @return 合并后的搜索结果列表
+     * 并行查询所有已启用视频源，将各源结果合并返回。
+     * 单个源失败不影响其他源的结果（静默降级为空列表）。
      */
     suspend fun search(keyword: String): Result<List<SearchResult>> = coroutineScope {
         runCatching {
             addToHistory(keyword)
             val enabledSources = sourceRepository.getEnabledSources()
             val results = enabledSources.map { source ->
-                async {
-                    sourceEngine.search(source, keyword).getOrDefault(emptyList())
-                }
+                async { sourceEngine.search(source, keyword).getOrDefault(emptyList()) }
             }.awaitAll()
             results.flatten()
         }
     }
 
-    /**
-     * 获取视频详情
-     *
-     * @param source 视频源
-     * @param url 详情页 URL
-     * @return 视频详情信息
-     */
+    /** 获取视频详情（标题、简介、剧集列表） */
     suspend fun getDetail(source: VideoSource, url: String): Result<Video> {
         return sourceEngine.getDetail(source, url)
     }
 
-    /**
-     * 获取播放地址
-     *
-     * @param source 视频源
-     * @param episodeUrl 剧集 URL
-     * @return 可播放的视频 URL
-     */
+    /** 解析实际播放地址 */
     suspend fun getPlayerUrl(source: VideoSource, episodeUrl: String): Result<String> {
         return sourceEngine.getPlayerUrl(source, episodeUrl)
     }
 
-    /**
-     * 获取分类视频列表
-     *
-     * @param source 视频源
-     * @param categoryUrl 分类 URL
-     * @param page 页码
-     * @return 搜索结果列表
-     */
+    /** 获取分类页视频列表（支持分页） */
     suspend fun getCategoryVideos(
         source: VideoSource,
         categoryUrl: String = "",
@@ -105,13 +83,12 @@ class VideoRepository(
         return sourceEngine.getCategoryVideos(source, categoryUrl, page)
     }
 
-    /**
-     * 清除搜索历史
-     */
+    /** 清空搜索历史 */
     fun clearHistory() {
         _searchHistory.value = emptyList()
     }
 
+    /** 将关键词追加到历史队首（去重 + 限长） */
     private fun addToHistory(keyword: String) {
         val current = _searchHistory.value.toMutableList()
         current.remove(keyword)

@@ -29,13 +29,12 @@ import com.stark.miuix.data.model.SearchResult
 /**
  * 视频网格组件
  *
- * 以自适应列数的网格形式展示视频卡片列表。
- * 根据屏幕宽度自动调整列数（最小 150dp 每列），
- * 适配手机、平板、桌面等不同屏幕尺寸。
+ * 自适应列数网格布局（最小 150dp/列），
+ * 适配手机到桌面各种屏幕尺寸。
  *
- * @param videos 视频列表数据
- * @param onVideoClick 视频点击回调
- * @param modifier Modifier 修饰符
+ * @param videos 视频列表
+ * @param onVideoClick 点击回调
+ * @param modifier 外部传入的 Modifier（如 fillMaxSize）
  */
 @Composable
 fun VideoGrid(
