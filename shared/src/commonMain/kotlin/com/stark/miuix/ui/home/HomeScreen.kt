@@ -75,8 +75,10 @@ fun HomeScreen(
     }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val sources by sourceRepository.sources.collectAsState()
 
-    LaunchedEffect(Unit) {
+    // 视频源列表变化时自动重新加载（首次进入 + 导入新源后返回）
+    LaunchedEffect(sources) {
         viewModel.loadVideos()
     }
 
