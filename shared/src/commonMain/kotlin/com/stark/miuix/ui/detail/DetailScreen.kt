@@ -30,11 +30,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.EpisodeList
+import io.kamel.image.KamelImage
+import io.kamel.image.asyncPainterResource
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -107,8 +120,16 @@ fun DetailScreen(
                                 .fillMaxWidth()
                                 .height(220.dp)
                         ) {
-                            // TODO: 使用 Coil 加载网络图片
-                            // AsyncImage(model = video.cover, contentScale = ContentScale.Crop)
+                            if (video.cover.isNotBlank()) {
+                                val painterResource = asyncPainterResource(video.cover)
+                                KamelImage(
+                                    resource = painterResource,
+                                    contentDescription = video.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    onFailure = { /* 加载失败时显示占位背景 */ }
+                                )
+                            }
                         }
                     }
 

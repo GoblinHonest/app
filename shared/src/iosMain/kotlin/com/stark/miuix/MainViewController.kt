@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.window.CanvasBasedWindow
+package com.stark.miuix
+
+import androidx.compose.ui.window.ComposeUIViewController
+import platform.UIKit.UIViewController
 
 /**
- * Web (WasmJs) 应用入口
+ * iOS 应用入口
  *
- * 使用 CanvasBasedWindow 启动 Compose Web 应用。
+ * 返回 Compose UI 的 UIViewController，供 Swift/Objective-C 调用。
  * 依赖注入在 App() 内部完成。
  */
-@OptIn(ExperimentalComposeUiApi::class)
-fun main() {
-    CanvasBasedWindow(canvasElementId = "ComposeTarget") {
-        App()
-    }
+fun MainViewController(): UIViewController = ComposeUIViewController {
+    App()
 }

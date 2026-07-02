@@ -21,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
+import io.kamel.image.KamelImage
+import io.kamel.image.asyncPainterResource
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -72,8 +75,16 @@ fun VideoCard(
                     .clip(SquircleShape(16.dp))
                     .background(MiuixTheme.colorScheme.surfaceVariant)
             ) {
-                // TODO: 使用 Coil/Kamel 加载网络图片
-                // AsyncImage(model = searchResult.cover, ...)
+                if (searchResult.cover.isNotBlank()) {
+                    val painterResource = asyncPainterResource(searchResult.cover)
+                    KamelImage(
+                        resource = painterResource,
+                        contentDescription = searchResult.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onFailure = { /* 加载失败时显示占位背景 */ }
+                    )
+                }
             }
 
             // 视频信息区域
