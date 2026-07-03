@@ -165,9 +165,9 @@ class HtmlParser : RuleParser {
     /** 检查元素属性是否满足选择器过滤条件 */
     private fun matchesFilters(attrs: String, fullOpenTag: String, parsed: SelectorParts): Boolean {
         val attrText = attrs.ifBlank { fullOpenTag }
-        if (parsed.className != null) {
-            val classAttr = extractAttribute(attrText, "class")
-            if (!classAttr.split(WHITESPACE_REGEX).contains(parsed.className)) return false
+        if (parsed.classNames.isNotEmpty()) {
+            val classAttr = extractAttribute(attrText, "class").split(WHITESPACE_REGEX)
+            if (!classAttr.containsAll(parsed.classNames)) return false
         }
         if (parsed.id != null) {
             val idAttr = extractAttribute(attrText, "id")
@@ -201,10 +201,15 @@ class HtmlParser : RuleParser {
 
         return when {
             s.startsWith("#") -> SelectorParts(id = s.substring(1), attrName = attrName, attrValue = attrValue)
-            s.startsWith(".") -> SelectorParts(className = s.substring(1), attrName = attrName, attrValue = attrValue)
+            s.startsWith(".") -> {
+                val classes = s.substring(1).split(".")
+                SelectorParts(classNames = classes, attrName = attrName, attrValue = attrValue)
+            }
             s.contains(".") -> {
-                val (tag, cls) = s.split(".", limit = 2)
-                SelectorParts(tagName = tag, className = cls, attrName = attrName, attrValue = attrValue)
+                val parts = s.split(".")
+                val tag = parts[0]
+                val classes = parts.drop(1)
+                SelectorParts(tagName = tag, classNames = classes, attrName = attrName, attrValue = attrValue)
             }
             s.contains("#") -> {
                 val (tag, id) = s.split("#", limit = 2)
@@ -239,7 +244,7 @@ class HtmlParser : RuleParser {
 
     private data class SelectorParts(
         val tagName: String? = null,
-        val className: String? = null,
+        val classNames: List<String> = emptyList(),
         val id: String? = null,
         val attrName: String? = null,
         val attrValue: String? = null
