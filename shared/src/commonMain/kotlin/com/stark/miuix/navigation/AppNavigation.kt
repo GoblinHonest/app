@@ -21,16 +21,21 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -48,6 +53,7 @@ import com.stark.miuix.ui.profile.ProfileScreen
 import com.stark.miuix.ui.search.SearchScreen
 import com.stark.miuix.ui.settings.SettingsScreen
 import com.stark.miuix.ui.source.SourceManageScreen
+import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -208,9 +214,9 @@ fun AppNavigation(
 }
 
 /**
- * 底部导航栏
+ * 底部导航栏 — HyperOS 风格
  *
- * 使用 Miuix Surface + Row 构建 HyperOS 风格底部 Tab 栏。
+ * 三 Tab 布局，选中态高亮 + 粗体，未选中灰色。
  */
 @Composable
 private fun AppBottomBar(navController: NavHostController) {
@@ -225,20 +231,19 @@ private fun AppBottomBar(navController: NavHostController) {
     }
 
     Surface {
-        androidx.compose.foundation.layout.Row(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
+                .height(DesignTokens.bottomBarHeight),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             BottomTab.entries.forEachIndexed { index, tab ->
                 val selected = index == selectedIndex
-                Text(
-                    text = tab.label,
-                    style = MiuixTheme.textStyles.body1,
-                    color = if (selected) MiuixTheme.colorScheme.primary
-                           else MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
+                        .weight(1f)
                         .clickable {
                             navController.navigate(tab.screen) {
                                 popUpTo(Screen.Home) { saveState = true }
@@ -246,8 +251,22 @@ private fun AppBottomBar(navController: NavHostController) {
                                 restoreState = true
                             }
                         }
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                        .padding(vertical = DesignTokens.spacingSm)
+                ) {
+                    Text(
+                        text = tab.icon,
+                        style = MiuixTheme.textStyles.headline1,
+                        color = if (selected) MiuixTheme.colorScheme.primary
+                               else MiuixTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = tab.label,
+                        style = MiuixTheme.textStyles.footnote2,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selected) MiuixTheme.colorScheme.primary
+                               else MiuixTheme.colorScheme.outline
+                    )
+                }
             }
         }
     }
