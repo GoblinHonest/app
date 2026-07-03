@@ -124,7 +124,7 @@ fun CategoryScreen(
                     ) {
                         items(
                             items = state.videos,
-                            key = { it.url }
+                            key = { "${it.sourceName}:${it.url}" }
                         ) { video ->
                             VideoCard(
                                 searchResult = video,
