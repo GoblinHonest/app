@@ -17,6 +17,7 @@
 package com.stark.miuix.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,8 +30,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -40,6 +43,8 @@ import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.stark.miuix.util.AppLogger
+import com.stark.miuix.util.ClipboardUtils
 
 /**
  * 设置页
@@ -120,6 +125,62 @@ fun SettingsScreen(
                     actionText = "清除",
                     onAction = { viewModel.clearCache() }
                 )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 调试
+            SettingsSection(title = "调试") {
+                val copyAction = ClipboardUtils.rememberCopyAction()
+                val logs by AppLogger.logs.collectAsState()
+                var showLogs by remember { mutableStateOf(false) }
+
+                SettingsItem(
+                    title = "应用日志",
+                    subtitle = "最近 ${logs.size} 条 · 日志文件: ${AppLogger.getLogFile()}",
+                    actionText = if (showLogs) "收起" else "查看",
+                    onAction = { showLogs = !showLogs }
+                )
+                if (showLogs && logs.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        cornerRadius = 8.dp
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "复制全部",
+                                    style = MiuixTheme.textStyles.footnote1,
+                                    color = MiuixTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        copyAction(logs.joinToString("\n"))
+                                    }
+                                )
+                                Text(
+                                    text = "清空",
+                                    style = MiuixTheme.textStyles.footnote1,
+                                    color = MiuixTheme.colorScheme.error,
+                                    modifier = Modifier.clickable { AppLogger.clear() }
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            logs.take(50).forEach { log ->
+                                Text(
+                                    text = log,
+                                    style = MiuixTheme.textStyles.footnote2,
+                                    color = if (log.contains("E/")) MiuixTheme.colorScheme.error
+                                           else MiuixTheme.colorScheme.outline,
+                                    modifier = Modifier.padding(vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

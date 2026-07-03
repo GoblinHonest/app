@@ -77,8 +77,9 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val sources by sourceRepository.sources.collectAsState()
 
-    // 视频源列表变化时自动重新加载（首次进入 + 导入新源后返回）
-    LaunchedEffect(sources) {
+    // 监听源数量变化（非引用变化），避免无限循环
+    val sourceCount = sources.size
+    LaunchedEffect(sourceCount) {
         viewModel.loadVideos()
     }
 
@@ -106,15 +107,10 @@ fun HomeScreen(
             }
         )
 
-        AnimatedContent(
-            targetState = uiState,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "home_state"
-        ) { state ->
-            when (state) {
-                is HomeUiState.Loading -> {
-                    ShimmerVideoGrid()
-                }
+        when (val state = uiState) {
+            is HomeUiState.Loading -> {
+                ShimmerVideoGrid()
+            }
 
                 is HomeUiState.Success -> {
                     if (state.sources.isEmpty()) {
@@ -164,7 +160,6 @@ fun HomeScreen(
             }
         }
     }
-}
 
 /**
  * 无视频源时的空状态引导

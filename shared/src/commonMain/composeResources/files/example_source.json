@@ -1,46 +1,48 @@
-{
-  "sourceName": "示例影视源",
-  "sourceUrl": "https://example.com",
-  "version": 1,
-  "enabled": true,
-  "sourceGroup": "示例",
-  "sourceComment": "这是一个视频源配置示例，展示了完整的规则格式。请替换为实际可用的视频源。",
-  "searchRule": {
-    "searchUrl": "/search?keyword={{keyword}}&page=1",
-    "ruleType": "css",
-    "listRule": ".video-list .video-item",
-    "titleRule": ".video-title@text",
-    "coverRule": ".video-cover@attr:src",
-    "urlRule": ".video-link@attr:href",
-    "descRule": ".video-desc@text"
-  },
-  "categoryRule": {
-    "categoryUrl": "/type/movie?page={{page}}",
-    "ruleType": "css",
-    "categoryListRule": ".category-nav a",
-    "categoryNameRule": "@text",
-    "categoryUrlRule": "@attr:href",
-    "videoListRule": ".video-grid .video-card",
-    "titleRule": ".card-title@text",
-    "coverRule": ".card-poster@attr:src",
-    "urlRule": ".card-link@attr:href"
-  },
-  "detailRule": {
-    "ruleType": "css",
-    "titleRule": "h1.video-title@text",
-    "coverRule": "meta[property='og:image']@attr:content",
-    "descRule": ".video-description@text",
-    "statusRule": ".video-status@text",
-    "episodeListRule": ".episode-list .episode-item",
-    "episodeNameRule": ".episode-name@text",
-    "episodeUrlRule": ".episode-link@attr:href"
-  },
-  "playerRule": {
-    "ruleType": "jsonpath",
-    "playerUrlRule": "$.data.video_url",
-    "playerHeaders": {
-      "Referer": "https://example.com",
-      "User-Agent": "Mozilla/5.0"
+[
+  {
+    "sourceName": "叽哔动漫",
+    "sourceUrl": "https://www.jibi.cc",
+    "version": 1,
+    "enabled": true,
+    "sourceGroup": "动漫",
+    "sourceComment": "叽哔动漫网 - 免费在线动漫站",
+    "searchRule": {
+      "searchUrl": "/index.php/vod/search/wd/{{keyword}}.html",
+      "ruleType": "css",
+      "listRule": "a.module-card-item-poster",
+      "titleRule": "strong@text",
+      "coverRule": ".module-item-pic img@attr:data-original",
+      "urlRule": "@attr:href",
+      "descRule": ".module-item-note@text"
+    },
+    "categoryRule": {
+      "categoryUrl": "/index.php/vod/type/id/1.html",
+      "ruleType": "css",
+      "categoryListRule": ".navbar-item a",
+      "categoryNameRule": "span@text",
+      "categoryUrlRule": "@attr:href",
+      "videoListRule": "a.module-poster-item.module-item",
+      "titleRule": "@attr:title",
+      "coverRule": ".module-item-pic img@attr:data-original",
+      "urlRule": "@attr:href"
+    },
+    "detailRule": {
+      "ruleType": "css",
+      "titleRule": "h1@text",
+      "coverRule": ".module-info-poster img@attr:data-original",
+      "descRule": ".module-info-introduction-content@text",
+      "statusRule": ".module-info-item-content@text",
+      "episodeListRule": "a.module-play-list-link",
+      "episodeNameRule": "span@text",
+      "episodeUrlRule": "@attr:href"
+    },
+    "playerRule": {
+      "ruleType": "js",
+      "playerUrlRule": "$.url",
+      "playerHeaders": {
+        "Referer": "https://www.jibi.cc",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      }
     }
   }
-}
+]

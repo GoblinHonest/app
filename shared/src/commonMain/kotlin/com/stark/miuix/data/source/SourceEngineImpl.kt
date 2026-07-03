@@ -22,6 +22,7 @@ import com.stark.miuix.data.model.Video
 import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.parser.RuleParser
 import com.stark.miuix.util.LruCache
+import com.stark.miuix.util.AppLogger
 import com.stark.miuix.util.NetworkClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -103,33 +104,57 @@ class SourceEngineImpl(
         episodeUrl: String
     ): Result<String> = withContext(Dispatchers.Default) {
         runCatching {
+            AppLogger.d("Player", "解析播放地址: $episodeUrl")
+            AppLogger.d("Player", "规则类型: ${source.playerRule.ruleType}, 规则: ${source.playerRule.playerUrlRule}")
+
             val content = networkClient.get(
                 episodeUrl,
                 headers = source.playerRule.playerHeaders
             )
+            AppLogger.d("Player", "页面内容长度: ${content.length}")
 
-            // 优先尝试规则解析
-            var playerUrl = ruleParser.parseFirst(
-                content, source.playerRule.playerUrlRule, source.playerRule.ruleType
-            )
-
-            // 回退：从 MacCMS player_aaaa JSON 中提取播放地址
-            if (playerUrl.isBlank()) {
-                playerUrl = extractPlayerFromScript(content)
+            var playerUrl = when (source.playerRule.ruleType) {
+                "regex" -> {
+                    val regex = source.playerRule.playerUrlRule.toRegex()
+                    val match = regex.find(content)
+                    match?.groupValues?.getOrNull(1)?.replace("\\/", "/") ?: ""
+                }
+                "js", "json" -> {
+                    extractPlayerFromScript(content, source.playerRule.playerUrlRule)
+                }
+                else -> {
+                    ruleParser.parseFirst(content, source.playerRule.playerUrlRule, source.playerRule.ruleType)
+                }
             }
 
-            require(playerUrl.isNotBlank()) { "无法解析播放地址" }
+            // 所有规则类型都尝试 MacCMS 回退
+            if (playerUrl.isBlank()) {
+                AppLogger.d("Player", "规则解析为空，尝试 MacCMS 回退")
+                playerUrl = extractPlayerFromScript(content, "$.url")
+            }
+
+            AppLogger.d("Player", "解析结果: ${playerUrl.take(100)}")
+            require(playerUrl.isNotBlank()) { "无法解析播放地址 (ruleType=${source.playerRule.ruleType}, url=$episodeUrl)" }
             playerUrl
         }
     }
 
     /**
-     * 从 MacCMS 播放页的 player_aaaa JavaScript 变量中提取视频 URL
+     * 从页面 script 中提取播放地址
      *
-     * MacCMS 站点将播放信息存储在页面 script 中：
-     * `player_aaaa={"url":"https://...m3u8",...}`
+     * 支持 MacCMS 等常见 CMS 的播放页结构：
+     * - player_aaaa={"url":"..."}
+     * - 自定义 jsonpath 规则提取
      */
-    private fun extractPlayerFromScript(html: String): String {
+    private fun extractPlayerFromScript(html: String, rule: String): String {
+        // 如果规则是 jsonpath 格式，先提取 JSON 块再用 jsonpath 解析
+        val jsonBlock = """player_aaaa\s*=\s*(\{[^;]+\})""".toRegex().find(html)?.groupValues?.get(1)
+        if (jsonBlock != null && rule.isNotBlank()) {
+            val result = ruleParser.parseField(jsonBlock, rule, "jsonpath")
+            if (result.isNotBlank()) return result.replace("\\/", "/")
+        }
+
+        // 兜底：正则匹配常见播放地址模式
         val patterns = listOf(
             """"url"\s*:\s*"([^"]+\.m3u8[^"]*)"""".toRegex(),
             """"url"\s*:\s*"([^"]+\.mp4[^"]*)"""".toRegex(),

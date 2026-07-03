@@ -20,14 +20,15 @@ import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 /** 首页 UI 状态 */
 sealed interface HomeUiState {
@@ -42,9 +43,7 @@ sealed interface HomeUiState {
 /**
  * 首页 ViewModel — 多源聚合推荐
  *
- * 并行从所有已启用视频源拉取分类视频，
- * 每个源最多取 [PER_SOURCE_LIMIT] 条，合并后交叉排列。
- * 单个源失败不影响其他源的结果（静默降级）。
+ * 使用 [supervisorScope] 并行加载，单个源失败不影响其他源。
  */
 class HomeViewModel(
     private val videoRepository: VideoRepository,
@@ -57,7 +56,6 @@ class HomeViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    /** 首次加载 */
     fun loadVideos() {
         scope.launch {
             if (_uiState.value !is HomeUiState.Success) {
@@ -67,7 +65,6 @@ class HomeViewModel(
         }
     }
 
-    /** 下拉刷新 — 不切换到 Loading 态 */
     fun refresh() {
         scope.launch {
             _isRefreshing.value = true
@@ -79,34 +76,39 @@ class HomeViewModel(
     private suspend fun fetchData() {
         try {
             val sources = sourceRepository.getEnabledSources()
+            AppLogger.d("Home", "加载首页, 启用源数: ${sources.size}")
+
             if (sources.isEmpty()) {
                 _uiState.value = HomeUiState.Success(videos = emptyList(), sources = emptyList())
                 return
             }
 
-            val allVideos = coroutineScope {
+            // supervisorScope: 单个源失败不取消其他源
+            val allVideos = supervisorScope {
                 sources.map { source ->
                     async {
-                        videoRepository.getCategoryVideos(source)
-                            .getOrDefault(emptyList())
-                            .take(PER_SOURCE_LIMIT)
+                        try {
+                            val result = videoRepository.getCategoryVideos(source)
+                            val videos = result.getOrDefault(emptyList()).take(PER_SOURCE_LIMIT)
+                            AppLogger.d("Home", "源[${source.sourceName}] 加载 ${videos.size} 条")
+                            videos
+                        } catch (e: Exception) {
+                            AppLogger.e("Home", "源[${source.sourceName}] 加载失败", e)
+                            emptyList()
+                        }
                     }
                 }.awaitAll()
             }
 
             val merged = interleave(allVideos)
+            AppLogger.d("Home", "聚合完成, 总计 ${merged.size} 条视频")
             _uiState.value = HomeUiState.Success(videos = merged, sources = sources)
         } catch (e: Exception) {
+            AppLogger.e("Home", "首页加载异常", e)
             _uiState.value = HomeUiState.Error(e.message ?: "加载失败")
         }
     }
 
-    /**
-     * 交叉合并多个列表
-     *
-     * 将 [[A1,A2,A3], [B1,B2]] 合并为 [A1,B1,A2,B2,A3]，
-     * 让不同源的内容均匀分布，避免单源霸屏。
-     */
     private fun interleave(lists: List<List<SearchResult>>): List<SearchResult> {
         val result = mutableListOf<SearchResult>()
         val maxLen = lists.maxOfOrNull { it.size } ?: 0
