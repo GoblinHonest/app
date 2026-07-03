@@ -1,12 +1,8 @@
 pluginManagement {
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        maven("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/")
+        maven("https://mirrors.cloud.tencent.com/gradle/")
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
@@ -14,13 +10,8 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        maven("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/")
+        google()
         mavenCentral()
     }
 }

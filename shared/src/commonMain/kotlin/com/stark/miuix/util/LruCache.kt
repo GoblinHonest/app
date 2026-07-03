@@ -18,7 +18,6 @@ package com.stark.miuix.util
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
 
 /**
  * 内存 LRU 缓存
@@ -74,4 +73,4 @@ class LruCache<T>(
 }
 
 /** 跨平台获取当前时间戳（毫秒） */
-fun currentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()
+expect fun currentTimeMillis(): Long

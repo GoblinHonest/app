@@ -20,6 +20,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,8 +48,9 @@ import com.stark.miuix.ui.profile.ProfileScreen
 import com.stark.miuix.ui.search.SearchScreen
 import com.stark.miuix.ui.settings.SettingsScreen
 import com.stark.miuix.ui.source.SourceManageScreen
-import top.yukonga.miuix.kmp.basic.NavigationBar
-import top.yukonga.miuix.kmp.basic.NavigationItem
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * 应用导航图
@@ -208,8 +210,7 @@ fun AppNavigation(
 /**
  * 底部导航栏
  *
- * 使用 Miuix NavigationBar 组件，三个 Tab：首页、搜索、我的。
- * 点击已选中的 Tab 会回到栈顶（popUpTo），避免重复堆叠。
+ * 使用 Miuix Surface + Row 构建 HyperOS 风格底部 Tab 栏。
  */
 @Composable
 private fun AppBottomBar(navController: NavHostController) {
@@ -223,22 +224,31 @@ private fun AppBottomBar(navController: NavHostController) {
         }.coerceAtLeast(0)
     }
 
-    val items = remember {
-        BottomTab.entries.map { tab ->
-            NavigationItem(tab.label, tab.label)
-        }
-    }
-
-    NavigationBar(
-        items = items,
-        selected = selectedIndex,
-        onClick = { index ->
-            val targetTab = BottomTab.entries[index]
-            navController.navigate(targetTab.screen) {
-                popUpTo(Screen.Home) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
+    Surface {
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
+        ) {
+            BottomTab.entries.forEachIndexed { index, tab ->
+                val selected = index == selectedIndex
+                Text(
+                    text = tab.label,
+                    style = MiuixTheme.textStyles.body1,
+                    color = if (selected) MiuixTheme.colorScheme.primary
+                           else MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    modifier = Modifier
+                        .clickable {
+                            navController.navigate(tab.screen) {
+                                popUpTo(Screen.Home) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
         }
-    )
+    }
 }

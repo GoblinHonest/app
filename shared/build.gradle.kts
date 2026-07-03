@@ -16,13 +16,16 @@ kotlin {
         browser()
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "shared"
-            isStatic = true
+    // iOS targets 仅在 macOS 上启用（Kotlin/Native 要求）
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        listOf(
+            iosArm64(),
+            iosSimulatorArm64()
+        ).forEach { iosTarget ->
+            iosTarget.binaries.framework {
+                baseName = "shared"
+                isStatic = true
+            }
         }
     }
 
@@ -84,14 +87,16 @@ kotlin {
             }
         }
 
-        val iosMain by creating {
-            dependsOn(commonMain)
-            dependencies {
-                implementation(libs.ktor.client.darwin)
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+            val iosMain by creating {
+                dependsOn(commonMain)
+                dependencies {
+                    implementation(libs.ktor.client.darwin)
+                }
             }
+            val iosArm64Main by getting { dependsOn(iosMain) }
+            val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
         }
-        val iosArm64Main by getting { dependsOn(iosMain) }
-        val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
     }
 }
 
