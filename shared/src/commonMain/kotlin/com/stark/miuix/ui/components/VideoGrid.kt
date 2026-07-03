@@ -51,7 +51,7 @@ fun VideoGrid(
     ) {
         items(
             items = videos,
-            key = { it.url }
+            key = { "${it.sourceName}:${it.url}" }
         ) { video ->
             VideoCard(
                 searchResult = video,

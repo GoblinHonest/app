@@ -296,7 +296,7 @@ private fun HomeContentGrid(
         // 视频卡片（自适应列数）
         items(
             items = state.videos,
-            key = { it.url }
+            key = { "${it.sourceName}:${it.url}" }
         ) { video ->
             VideoCard(
                 searchResult = video,
