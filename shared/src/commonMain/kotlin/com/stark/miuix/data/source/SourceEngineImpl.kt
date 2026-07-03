@@ -103,13 +103,46 @@ class SourceEngineImpl(
         episodeUrl: String
     ): Result<String> = withContext(Dispatchers.Default) {
         runCatching {
-            val content = networkClient.get(episodeUrl)
-            val playerUrl = ruleParser.parseFirst(
+            val content = networkClient.get(
+                episodeUrl,
+                headers = source.playerRule.playerHeaders
+            )
+
+            // 优先尝试规则解析
+            var playerUrl = ruleParser.parseFirst(
                 content, source.playerRule.playerUrlRule, source.playerRule.ruleType
             )
+
+            // 回退：从 MacCMS player_aaaa JSON 中提取播放地址
+            if (playerUrl.isBlank()) {
+                playerUrl = extractPlayerFromScript(content)
+            }
+
             require(playerUrl.isNotBlank()) { "无法解析播放地址" }
             playerUrl
         }
+    }
+
+    /**
+     * 从 MacCMS 播放页的 player_aaaa JavaScript 变量中提取视频 URL
+     *
+     * MacCMS 站点将播放信息存储在页面 script 中：
+     * `player_aaaa={"url":"https://...m3u8",...}`
+     */
+    private fun extractPlayerFromScript(html: String): String {
+        val patterns = listOf(
+            """"url"\s*:\s*"([^"]+\.m3u8[^"]*)"""".toRegex(),
+            """"url"\s*:\s*"([^"]+\.mp4[^"]*)"""".toRegex(),
+            """"url"\s*:\s*"(https?://[^"]+)"""".toRegex()
+        )
+        for (pattern in patterns) {
+            val match = pattern.find(html)
+            if (match != null) {
+                val url = match.groupValues[1].replace("\\/", "/")
+                if (url.startsWith("http")) return url
+            }
+        }
+        return ""
     }
 
     override suspend fun getCategoryVideos(
