@@ -16,6 +16,7 @@
 
 package com.stark.miuix.ui.search
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,9 +24,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,22 +38,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.di.AppContainer
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoGrid
+import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 搜索页
+ * 搜索页 — 全屏搜索体验
  *
- * 提供搜索栏、搜索历史（标签云）、搜索结果网格。
- * 搜索时使用 Shimmer 骨架屏替代普通 loading。
+ * 顶部真实搜索框（可输入）+ 搜索按钮，
+ * 下方根据状态展示：历史标签 / 骨架屏 / 结果网格 / 空结果引导。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -68,15 +74,16 @@ fun SearchScreen(
     var query by remember { mutableStateOf(initialQuery) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(title = "搜索")
-
-        // 搜索栏 + 搜索按钮
+        // 搜索栏
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(
+                    horizontal = DesignTokens.screenPadding,
+                    vertical = DesignTokens.spacingMd
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
         ) {
             TextField(
                 value = query,
@@ -85,19 +92,24 @@ fun SearchScreen(
                     viewModel.onQueryChanged(it)
                 },
                 modifier = Modifier.weight(1f),
-                label = "搜索视频..."
+                label = "搜索视频、演员、导演..."
             )
-            Card(
-                modifier = Modifier.clickable {
-                    if (query.isNotBlank()) viewModel.search(query)
-                },
-                cornerRadius = 10.dp
+            Box(
+                modifier = Modifier
+                    .height(DesignTokens.searchBarHeight)
+                    .clip(RoundedCornerShape(DesignTokens.radiusMd))
+                    .background(MiuixTheme.colorScheme.primary)
+                    .clickable {
+                        if (query.isNotBlank()) viewModel.search(query)
+                    }
+                    .padding(horizontal = DesignTokens.spacingLg),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "搜索",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.primary
+                    fontWeight = FontWeight.Medium,
+                    color = MiuixTheme.colorScheme.onPrimary
                 )
             }
         }
@@ -108,7 +120,7 @@ fun SearchScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = DesignTokens.screenPadding)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -117,6 +129,7 @@ fun SearchScreen(
                             Text(
                                 text = "搜索历史",
                                 style = MiuixTheme.textStyles.body1,
+                                fontWeight = FontWeight.Medium,
                                 color = MiuixTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f)
                             )
@@ -127,26 +140,24 @@ fun SearchScreen(
                                 modifier = Modifier.clickable { viewModel.clearHistory() }
                             )
                         }
-
+                        Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
                         FlowRow(
-                            modifier = Modifier.padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
+                            verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
                         ) {
                             history.forEach { keyword ->
-                                Card(
-                                    modifier = Modifier.clickable {
-                                        query = keyword
-                                        viewModel.search(keyword)
-                                    },
-                                    cornerRadius = 8.dp
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                                        .background(MiuixTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            query = keyword
+                                            viewModel.search(keyword)
+                                        }
+                                        .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
                                 ) {
                                     Text(
                                         text = keyword,
-                                        modifier = Modifier.padding(
-                                            horizontal = 12.dp,
-                                            vertical = 6.dp
-                                        ),
                                         style = MiuixTheme.textStyles.footnote1,
                                         color = MiuixTheme.colorScheme.onSurface
                                     )
@@ -172,39 +183,35 @@ fun SearchScreen(
                             modifier = Modifier.padding(horizontal = 32.dp)
                         ) {
                             Text(
-                                text = "未找到 \"${state.keyword}\" 相关内容",
+                                text = "未找到相关内容",
                                 style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                color = MiuixTheme.colorScheme.outline
                             )
+                            Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
                             Text(
-                                text = "试试换个关键词，或检查视频源是否可用",
+                                text = "试试换个关键词",
                                 style = MiuixTheme.textStyles.footnote1,
-                                color = MiuixTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 8.dp)
+                                color = MiuixTheme.colorScheme.outline
                             )
                             if (history.isNotEmpty()) {
-                                Text(
-                                    text = "试试这些:",
-                                    style = MiuixTheme.textStyles.footnote1,
-                                    color = MiuixTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(top = 16.dp)
-                                )
+                                Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
                                 FlowRow(
-                                    modifier = Modifier.padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
+                                    verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
                                 ) {
                                     history.take(5).forEach { keyword ->
-                                        Card(
-                                            modifier = Modifier.clickable {
-                                                query = keyword
-                                                viewModel.search(keyword)
-                                            },
-                                            cornerRadius = 8.dp
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                                                .background(MiuixTheme.colorScheme.surfaceVariant)
+                                                .clickable {
+                                                    query = keyword
+                                                    viewModel.search(keyword)
+                                                }
+                                                .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
                                         ) {
                                             Text(
                                                 text = keyword,
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                                 style = MiuixTheme.textStyles.footnote1,
                                                 color = MiuixTheme.colorScheme.primary
                                             )
@@ -221,7 +228,10 @@ fun SearchScreen(
                             text = "从 ${sourceCount} 个源找到 ${state.results.size} 条结果",
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.outline,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(
+                                horizontal = DesignTokens.screenPadding,
+                                vertical = DesignTokens.spacingSm
+                            )
                         )
                         VideoGrid(
                             videos = state.results,
