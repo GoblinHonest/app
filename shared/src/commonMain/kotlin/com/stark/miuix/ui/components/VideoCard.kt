@@ -36,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
@@ -158,7 +157,6 @@ fun VideoCard(
             Text(
                 text = searchResult.title,
                 style = MiuixTheme.textStyles.body1,
-                fontWeight = FontWeight.Medium,
                 color = MiuixTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

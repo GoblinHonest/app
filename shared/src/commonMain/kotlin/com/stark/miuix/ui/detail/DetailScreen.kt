@@ -52,6 +52,7 @@ import com.stark.miuix.ui.components.EpisodeList
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.util.ClipboardUtils
+import com.stark.miuix.util.UrlEncoder
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import top.yukonga.miuix.kmp.basic.Card
@@ -83,13 +84,15 @@ fun DetailScreen(
         DetailViewModel(videoRepository, sourceRepository, scope)
     }
     val uiState by viewModel.uiState.collectAsState()
-    val videoId = detailUrl.hashCode().toString()
+    val decodedUrl = UrlEncoder.decode(detailUrl)
+    val decodedCover = UrlEncoder.decode(initialCoverUrl)
+    val videoId = decodedUrl.hashCode().toString()
     var isFavorite by remember { mutableStateOf(userDataRepository.isFavorite(videoId)) }
     val copyToClipboard = ClipboardUtils.rememberCopyAction()
     var descExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(detailUrl) {
-        viewModel.loadDetail(sourceName, detailUrl)
+        viewModel.loadDetail(sourceName, decodedUrl)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -112,7 +115,7 @@ fun DetailScreen(
                         title = initialTitle,
                         cover = initialCoverUrl,
                         sourceName = sourceName,
-                        detailUrl = detailUrl
+                        detailUrl = decodedUrl
                     )
                     isFavorite = userDataRepository.toggleFavorite(fav)
                 }) {
@@ -142,7 +145,7 @@ fun DetailScreen(
                             title = video.title,
                             cover = video.cover,
                             sourceName = sourceName,
-                            detailUrl = detailUrl
+                            detailUrl = decodedUrl
                         )
                     )
                 }
@@ -268,7 +271,7 @@ fun DetailScreen(
             is DetailUiState.Error -> {
                 ErrorStateView(
                     message = state.message,
-                    onRetry = { viewModel.loadDetail(sourceName, detailUrl) }
+                    onRetry = { viewModel.loadDetail(sourceName, decodedUrl) }
                 )
             }
         }

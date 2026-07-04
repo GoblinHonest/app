@@ -35,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -54,6 +53,7 @@ import com.stark.miuix.ui.search.SearchScreen
 import com.stark.miuix.ui.settings.SettingsScreen
 import com.stark.miuix.ui.source.SourceManageScreen
 import com.stark.miuix.ui.theme.DesignTokens
+import com.stark.miuix.util.UrlEncoder
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -119,10 +119,10 @@ fun AppNavigation(
                         sourceRepository = sourceRepository,
                         onNavigateToSearch = { navController.navigate(Screen.Search) },
                         onNavigateToCategory = { sourceName, categoryUrl ->
-                            navController.navigate(Screen.Category(sourceName, categoryUrl))
+                            navController.navigate(Screen.Category(sourceName, UrlEncoder.encode(categoryUrl)))
                         },
                         onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
-                            navController.navigate(Screen.Detail(sourceName, detailUrl, title, coverUrl))
+                            navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
                         },
                         onNavigateToSourceManage = { navController.navigate(Screen.SourceManage) }
                     )
@@ -131,7 +131,7 @@ fun AppNavigation(
                 composable<Screen.Search> {
                     SearchScreen(
                         onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
-                            navController.navigate(Screen.Detail(sourceName, detailUrl, title, coverUrl))
+                            navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
                         }
                     )
                 }
@@ -142,7 +142,7 @@ fun AppNavigation(
                         onNavigateToSourceManage = { navController.navigate(Screen.SourceManage) },
                         onNavigateToSettings = { navController.navigate(Screen.Settings) },
                         onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
-                            navController.navigate(Screen.Detail(sourceName, detailUrl, title, coverUrl))
+                            navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
                         }
                     )
                 }
@@ -155,7 +155,7 @@ fun AppNavigation(
                         videoRepository = videoRepository,
                         sourceRepository = sourceRepository,
                         onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
-                            navController.navigate(Screen.Detail(sourceName, detailUrl, title, coverUrl))
+                            navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
                         },
                         onNavigateBack = { navController.popBackStack() }
                     )
@@ -172,7 +172,7 @@ fun AppNavigation(
                         sourceRepository = sourceRepository,
                         userDataRepository = userDataRepository,
                         onNavigateToPlayer = { sourceName, episodeUrl, title ->
-                            navController.navigate(Screen.Player(sourceName, episodeUrl, title))
+                            navController.navigate(Screen.Player(sourceName, UrlEncoder.encode(episodeUrl), title))
                         },
                         onNavigateBack = { navController.popBackStack() }
                     )
@@ -262,7 +262,6 @@ private fun AppBottomBar(navController: NavHostController) {
                     Text(
                         text = tab.label,
                         style = MiuixTheme.textStyles.footnote2,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                         color = if (selected) MiuixTheme.colorScheme.primary
                                else MiuixTheme.colorScheme.outline
                     )

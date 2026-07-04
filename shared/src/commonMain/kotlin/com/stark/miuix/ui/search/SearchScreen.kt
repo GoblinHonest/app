@@ -39,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.di.AppContainer
 import com.stark.miuix.ui.components.ErrorStateView
@@ -108,8 +107,7 @@ fun SearchScreen(
                 Text(
                     text = "搜索",
                     style = MiuixTheme.textStyles.body2,
-                    fontWeight = FontWeight.Medium,
-                    color = MiuixTheme.colorScheme.onPrimary
+                    color = androidx.compose.ui.graphics.Color.White
                 )
             }
         }
@@ -129,7 +127,6 @@ fun SearchScreen(
                             Text(
                                 text = "搜索历史",
                                 style = MiuixTheme.textStyles.body1,
-                                fontWeight = FontWeight.Medium,
                                 color = MiuixTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f)
                             )

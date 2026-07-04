@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
+import com.stark.miuix.util.UrlEncoder
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
@@ -68,10 +69,11 @@ fun CategoryScreen(
     val viewModel = remember(videoRepository, sourceRepository, scope) {
         CategoryViewModel(videoRepository, sourceRepository, scope)
     }
+    val decodedCategoryUrl = UrlEncoder.decode(categoryUrl)
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(categoryUrl) {
-        viewModel.loadCategoryVideos(sourceName, categoryUrl)
+        viewModel.loadCategoryVideos(sourceName, decodedCategoryUrl)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -111,7 +113,7 @@ fun CategoryScreen(
 
                     LaunchedEffect(shouldLoadMore) {
                         if (shouldLoadMore) {
-                            viewModel.loadMore(sourceName, categoryUrl)
+                            viewModel.loadMore(sourceName, decodedCategoryUrl)
                         }
                     }
 
@@ -155,7 +157,7 @@ fun CategoryScreen(
             is CategoryUiState.Error -> {
                 ErrorStateView(
                     message = state.message,
-                    onRetry = { viewModel.loadCategoryVideos(sourceName, categoryUrl) }
+                    onRetry = { viewModel.loadCategoryVideos(sourceName, decodedCategoryUrl) }
                 )
             }
         }

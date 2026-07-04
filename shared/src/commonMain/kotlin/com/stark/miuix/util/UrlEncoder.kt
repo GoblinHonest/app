@@ -1,0 +1,46 @@
+/*
+ * Copyright 2024 Stark Industries
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.stark.miuix.util
+
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+
+/**
+ * URL 安全编码工具
+ *
+ * Navigation Compose 路由中传递 URL 参数时，
+ * 特殊字符（/, ?, #, &）可能导致路由解析失败。
+ * 使用 Base64 编码绕过此问题。
+ */
+object UrlEncoder {
+
+    @OptIn(ExperimentalEncodingApi::class)
+    fun encode(url: String): String {
+        if (url.isBlank()) return ""
+        return Base64.UrlSafe.encode(url.encodeToByteArray())
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    fun decode(encoded: String): String {
+        if (encoded.isBlank()) return ""
+        return try {
+            Base64.UrlSafe.decode(encoded).decodeToString()
+        } catch (_: Exception) {
+            encoded
+        }
+    }
+}

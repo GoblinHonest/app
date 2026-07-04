@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.util.UrlEncoder
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
@@ -69,14 +70,15 @@ fun PlayerScreen(
     val viewModel = remember(videoRepository, sourceRepository, scope) {
         DetailViewModel(videoRepository, sourceRepository, scope)
     }
+    val decodedEpisodeUrl = UrlEncoder.decode(episodeUrl)
     var videoUrl by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(episodeUrl) {
+    LaunchedEffect(decodedEpisodeUrl) {
         isLoading = true
         errorMessage = ""
-        val result = viewModel.getPlayerUrl(sourceName, episodeUrl)
+        val result = viewModel.getPlayerUrl(sourceName, decodedEpisodeUrl)
         result.fold(
             onSuccess = {
                 videoUrl = it
@@ -138,7 +140,7 @@ fun PlayerScreen(
                                 isLoading = true
                                 errorMessage = ""
                                 scope.launch {
-                                    val result = viewModel.getPlayerUrl(sourceName, episodeUrl)
+                                    val result = viewModel.getPlayerUrl(sourceName, decodedEpisodeUrl)
                                     result.fold(
                                         onSuccess = { videoUrl = it; isLoading = false },
                                         onFailure = { errorMessage = it.message ?: "解析失败"; isLoading = false }

@@ -44,7 +44,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.data.model.VideoSource
@@ -175,7 +174,6 @@ private fun SearchEntryBar(
             Text(
                 text = if (isRefreshing) "..." else "刷",
                 style = MiuixTheme.textStyles.body2,
-                fontWeight = FontWeight.Bold,
                 color = MiuixTheme.colorScheme.primary
             )
         }
@@ -193,7 +191,6 @@ private fun SearchEntryBar(
             Text(
                 text = "源",
                 style = MiuixTheme.textStyles.body2,
-                fontWeight = FontWeight.Bold,
                 color = MiuixTheme.colorScheme.primary
             )
         }
@@ -232,8 +229,7 @@ private fun EmptySourceHint(onNavigateToSourceManage: () -> Unit) {
                 Text(
                     text = "导入视频源",
                     style = MiuixTheme.textStyles.body1,
-                    fontWeight = FontWeight.Medium,
-                    color = MiuixTheme.colorScheme.onPrimary
+                    color = androidx.compose.ui.graphics.Color.White
                 )
             }
         }
@@ -272,7 +268,7 @@ private fun ErrorContent(message: String, onRetry: () -> Unit) {
                 Text(
                     text = "重试",
                     style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onPrimary
+                    color = androidx.compose.ui.graphics.Color.White
                 )
             }
         }
@@ -334,7 +330,6 @@ private fun HomeContentGrid(
                 Text(
                     text = "推荐",
                     style = MiuixTheme.textStyles.headline1,
-                    fontWeight = FontWeight.Bold,
                     color = MiuixTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(vertical = DesignTokens.spacingXs)
                 )
