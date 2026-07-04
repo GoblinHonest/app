@@ -1,17 +1,5 @@
 /*
  * Copyright 2024 Stark Industries
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package com.stark.miuix.ui.detail
@@ -19,69 +7,66 @@ package com.stark.miuix.ui.detail
 import com.stark.miuix.data.model.Video
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
-/**
- * 详情页 UI 状态
- */
 sealed interface DetailUiState {
-    /** 加载中 */
     data object Loading : DetailUiState
-
-    /** 加载成功
-     * @property video 视频详情数据
-     */
-    data class Success(val video: Video) : DetailUiState
-
-    /** 加载失败
-     * @property message 错误信息
-     */
+    data class Success(
+        val video: Video,
+        /** 所有可用源的解析结果 (sourceName -> Video) */
+        val allSources: Map<String, Video> = emptyMap(),
+        /** 当前选中的源名称 */
+        val currentSource: String = ""
+    ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }
 
 /**
- * 详情页 ViewModel
+ * 详情页 ViewModel — 支持多源切换
  *
- * 负责加载视频详情、解析播放地址。
- *
- * @property videoRepository 视频仓库
- * @property sourceRepository 视频源仓库
- * @property coroutineScope 协程作用域
+ * 首先加载指定源的详情，同时后台搜索其他源中的同名视频。
+ * 用户可在 UI 中切换不同源的剧集列表。
  */
 class DetailViewModel(
     private val videoRepository: VideoRepository,
     private val sourceRepository: SourceRepository
 ) {
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
-
-    /** 详情页 UI 状态 */
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     /**
-     * 加载视频详情
-     *
-     * @param sourceName 视频源名称
-     * @param detailUrl 详情页 URL
+     * 加载视频详情 — 先加载主源，再后台查找其他源
      */
     fun loadDetail(sourceName: String, detailUrl: String) {
-        coroutineScope.launch {
+        scope.launch {
             _uiState.value = DetailUiState.Loading
             val source = sourceRepository.getSourceByName(sourceName)
             if (source == null) {
                 _uiState.value = DetailUiState.Error("视频源不存在")
                 return@launch
             }
+
             val result = videoRepository.getDetail(source, detailUrl)
             result.fold(
                 onSuccess = { video ->
-                    _uiState.value = DetailUiState.Success(video)
+                    val sources = mutableMapOf(sourceName to video)
+                    _uiState.value = DetailUiState.Success(
+                        video = video,
+                        allSources = sources,
+                        currentSource = sourceName
+                    )
+                    // 后台搜索其他源中的同名视频
+                    loadOtherSources(video.title, sourceName, sources)
                 },
                 onFailure = { error ->
                     _uiState.value = DetailUiState.Error(error.message ?: "加载失败")
@@ -91,12 +76,63 @@ class DetailViewModel(
     }
 
     /**
-     * 获取播放地址
-     *
-     * @param sourceName 视频源名称
-     * @param episodeUrl 剧集 URL
-     * @return 可播放 URL
+     * 后台从其他启用的源搜索同名视频并加载详情
      */
+    private fun loadOtherSources(
+        title: String,
+        primarySource: String,
+        currentSources: MutableMap<String, Video>
+    ) {
+        if (title.isBlank()) return
+        scope.launch {
+            val otherSources = sourceRepository.getEnabledSources()
+                .filter { it.sourceName != primarySource }
+
+            supervisorScope {
+                otherSources.map { source ->
+                    async {
+                        try {
+                            val searchResults = videoRepository.search(title)
+                                .getOrDefault(emptyList())
+                                .filter { it.sourceName == source.sourceName }
+                                .firstOrNull { it.title.trim().equals(title.trim(), ignoreCase = true) }
+
+                            if (searchResults != null) {
+                                val video = videoRepository.getDetail(source, searchResults.url).getOrNull()
+                                if (video != null) {
+                                    AppLogger.d("Detail", "找到其他源: ${source.sourceName}")
+                                    synchronized(currentSources) {
+                                        currentSources[source.sourceName] = video
+                                    }
+                                    val current = _uiState.value
+                                    if (current is DetailUiState.Success) {
+                                        _uiState.value = current.copy(allSources = currentSources.toMap())
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            AppLogger.e("Detail", "搜索源[${source.sourceName}]失败", e)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 切换播放源
+     */
+    fun switchSource(sourceName: String) {
+        val current = _uiState.value
+        if (current is DetailUiState.Success) {
+            val video = current.allSources[sourceName] ?: return
+            _uiState.value = current.copy(
+                video = video,
+                currentSource = sourceName
+            )
+        }
+    }
+
     suspend fun getPlayerUrl(sourceName: String, episodeUrl: String): Result<String> {
         val source = sourceRepository.getSourceByName(sourceName)
             ?: return Result.failure(Exception("视频源不存在"))

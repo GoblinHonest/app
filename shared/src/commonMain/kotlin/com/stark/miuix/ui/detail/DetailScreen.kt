@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -51,6 +53,7 @@ import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.EpisodeList
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
+import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.ClipboardUtils
 import com.stark.miuix.util.UrlEncoder
 import io.kamel.image.KamelImage
@@ -228,12 +231,42 @@ fun DetailScreen(
                                             .clickable { descExpanded = !descExpanded }
                                     )
                                 }
+                            }
+                        }
+                    }
+
+                    // 播放源选择器（多源时显示）
+                    if (state.allSources.size > 1) {
+                        item {
+                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                 Text(
-                                    text = "来源: $sourceName",
-                                    style = MiuixTheme.textStyles.footnote2,
-                                    color = MiuixTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(top = 8.dp)
+                                    text = "播放源 (${state.allSources.size})",
+                                    style = MiuixTheme.textStyles.body1,
+                                    color = MiuixTheme.colorScheme.onSurface
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    state.allSources.keys.forEach { name ->
+                                        val isSelected = name == state.currentSource
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                                                .background(
+                                                    if (isSelected) MiuixTheme.colorScheme.primary
+                                                    else MiuixTheme.colorScheme.surfaceVariant
+                                                )
+                                                .clickable { viewModel.switchSource(name) }
+                                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = name,
+                                                style = MiuixTheme.textStyles.body2,
+                                                color = if (isSelected) Color.White
+                                                        else MiuixTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -259,7 +292,7 @@ fun DetailScreen(
                             EpisodeList(
                                 episodes = video.episodes,
                                 onEpisodeClick = { episode ->
-                                    onNavigateToPlayer(sourceName, episode.url, video.title)
+                                    onNavigateToPlayer(state.currentSource, episode.url, video.title)
                                 }
                             )
                         }
