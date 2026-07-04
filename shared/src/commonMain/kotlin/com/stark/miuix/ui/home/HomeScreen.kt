@@ -1,17 +1,5 @@
 /*
  * Copyright 2024 Stark Industries
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package com.stark.miuix.ui.home
@@ -29,11 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,25 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
-import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
-import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoCard
 import com.stark.miuix.ui.theme.DesignTokens
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * 首页 — 视频推荐与发现
- *
- * 布局结构（从上到下）：
- * 1. 搜索入口栏（点击跳转搜索页）
- * 2. 源分类横滑标签
- * 3. 视频推荐网格（自适应列数，平板 3-4 列）
- */
 @Composable
 fun HomeScreen(
     videoRepository: VideoRepository,
@@ -86,7 +60,6 @@ fun HomeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 顶部搜索入口
         SearchEntryBar(
             isRefreshing = isRefreshing,
             onSearchClick = onNavigateToSearch,
@@ -96,37 +69,46 @@ fun HomeScreen(
 
         when (val state = uiState) {
             is HomeUiState.Loading -> {
-                ShimmerVideoGrid()
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
             is HomeUiState.Success -> {
                 if (state.sources.isEmpty()) {
                     EmptySourceHint(onNavigateToSourceManage)
                 } else {
-                    HomeContentGrid(
+                    HomeContent(
                         state = state,
                         onVideoClick = { video ->
-                            onNavigateToDetail(
-                                video.sourceName, video.url, video.title, video.cover
-                            )
+                            onNavigateToDetail(video.sourceName, video.url, video.title, video.cover)
                         },
-                        onNavigateToCategory = onNavigateToCategory,
-                        onNavigateToSourceManage = onNavigateToSourceManage
+                        onNavigateToCategory = onNavigateToCategory
                     )
                 }
             }
             is HomeUiState.Error -> {
-                ErrorContent(
-                    message = state.message,
-                    onRetry = { viewModel.loadVideos() }
-                )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "加载失败", style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = state.message, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                                .background(MiuixTheme.colorScheme.primary)
+                                .clickable { viewModel.loadVideos() }
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                        ) {
+                            Text(text = "重试", style = MiuixTheme.textStyles.body2, color = androidx.compose.ui.graphics.Color.White)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * 搜索入口栏 — 模拟搜索框（点击跳转搜索页）
- */
 @Composable
 private fun SearchEntryBar(
     isRefreshing: Boolean,
@@ -141,7 +123,6 @@ private fun SearchEntryBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
     ) {
-        // 搜索框区域
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -152,14 +133,8 @@ private fun SearchEntryBar(
                 .padding(horizontal = DesignTokens.spacingLg),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = "搜索视频...",
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.outline
-            )
+            Text(text = "搜索视频...", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.outline)
         }
-
-        // 刷新按钮
         Box(
             modifier = Modifier
                 .height(DesignTokens.searchBarHeight)
@@ -169,14 +144,8 @@ private fun SearchEntryBar(
                 .clickable(onClick = onRefreshClick),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = if (isRefreshing) "..." else "刷",
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.primary
-            )
+            Text(text = if (isRefreshing) "..." else "刷", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.primary)
         }
-
-        // 源管理按钮
         Box(
             modifier = Modifier
                 .height(DesignTokens.searchBarHeight)
@@ -186,122 +155,52 @@ private fun SearchEntryBar(
                 .clickable(onClick = onSourceClick),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "源",
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.primary
-            )
+            Text(text = "源", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.primary)
         }
     }
 }
 
-/**
- * 空状态引导
- */
 @Composable
 private fun EmptySourceHint(onNavigateToSourceManage: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "暂无视频源",
-                style = MiuixTheme.textStyles.headline1,
-                color = MiuixTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-            Text(
-                text = "导入视频源后即可浏览海量内容",
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.outline
-            )
-            Spacer(modifier = Modifier.height(DesignTokens.spacingXl))
+            Text(text = "暂无视频源", style = MiuixTheme.textStyles.headline1, color = MiuixTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "导入视频源后即可浏览海量内容", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.outline)
+            Spacer(modifier = Modifier.height(24.dp))
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(DesignTokens.radiusXl))
                     .background(MiuixTheme.colorScheme.primary)
                     .clickable { onNavigateToSourceManage() }
-                    .padding(horizontal = 32.dp, vertical = DesignTokens.spacingMd),
+                    .padding(horizontal = 32.dp, vertical = 12.dp)
             ) {
-                Text(
-                    text = "导入视频源",
-                    style = MiuixTheme.textStyles.body1,
-                    color = androidx.compose.ui.graphics.Color.White
-                )
+                Text(text = "导入视频源", style = MiuixTheme.textStyles.body1, color = androidx.compose.ui.graphics.Color.White)
             }
         }
     }
 }
 
 /**
- * 错误内容
- */
-@Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "加载失败",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-            Text(
-                text = message,
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.outline
-            )
-            Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                    .background(MiuixTheme.colorScheme.primary)
-                    .clickable(onClick = onRetry)
-                    .padding(horizontal = 24.dp, vertical = DesignTokens.spacingSm)
-            ) {
-                Text(
-                    text = "重试",
-                    style = MiuixTheme.textStyles.body2,
-                    color = androidx.compose.ui.graphics.Color.White
-                )
-            }
-        }
-    }
-}
-
-/**
- * 首页内容网格
+ * 首页内容 — 使用 LazyColumn 避免嵌套滚动冲突
  *
- * 头部：源分类横滑标签
- * 主体：视频卡片自适应网格（手机 2 列，平板自动增列）
+ * 视频卡片手动排成两列（Row 内两个 VideoCard），
+ * 不使用 LazyVerticalGrid，彻底避免嵌套滚动崩溃。
  */
 @Composable
-private fun HomeContentGrid(
+private fun HomeContent(
     state: HomeUiState.Success,
     onVideoClick: (SearchResult) -> Unit,
-    onNavigateToCategory: (String, String) -> Unit,
-    onNavigateToSourceManage: () -> Unit
+    onNavigateToCategory: (String, String) -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = DesignTokens.gridMinWidth),
-        contentPadding = PaddingValues(
-            horizontal = DesignTokens.screenPadding,
-            vertical = DesignTokens.spacingSm
-        ),
-        horizontalArrangement = Arrangement.spacedBy(DesignTokens.cardGap),
+    LazyColumn(
+        contentPadding = PaddingValues(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
         verticalArrangement = Arrangement.spacedBy(DesignTokens.cardGap)
     ) {
-        // 源分类标签（占满整行）
+        // 源分类标签
         if (state.sources.size > 1) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
-                    modifier = Modifier.padding(bottom = DesignTokens.spacingSm)
-                ) {
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)) {
                     items(state.sources.size) { index ->
                         val source = state.sources[index]
                         Box(
@@ -311,38 +210,39 @@ private fun HomeContentGrid(
                                 .clickable { onNavigateToCategory(source.sourceName, "") }
                                 .padding(horizontal = DesignTokens.spacingLg, vertical = DesignTokens.spacingSm)
                         ) {
-                            Text(
-                                text = source.sourceName,
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurface
-                            )
+                            Text(text = source.sourceName, style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurface)
                         }
                     }
                 }
             }
         }
 
-        // 区域标题
         if (state.videos.isNotEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = "推荐",
-                    style = MiuixTheme.textStyles.headline1,
-                    color = MiuixTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(vertical = DesignTokens.spacingXs)
-                )
+            item {
+                Text(text = "推荐", style = MiuixTheme.textStyles.headline1, color = MiuixTheme.colorScheme.onSurface)
             }
         }
 
-        // 视频卡片
-        items(
-            items = state.videos,
-            key = { "${it.sourceName}:${it.url}" }
-        ) { video ->
-            VideoCard(
-                searchResult = video,
-                onClick = { onVideoClick(video) }
-            )
+        // 两列视频卡片
+        val rows = state.videos.chunked(2)
+        items(rows.size) { rowIndex ->
+            val row = rows[rowIndex]
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.cardGap)
+            ) {
+                row.forEach { video ->
+                    VideoCard(
+                        searchResult = video,
+                        onClick = { onVideoClick(video) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // 奇数个时填充空白
+                if (row.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
