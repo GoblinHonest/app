@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.ui.theme.DesignTokens
+import com.stark.miuix.util.AppLogger
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import top.yukonga.miuix.kmp.basic.Text
@@ -51,16 +52,39 @@ fun VideoCard(
                 .background(MiuixTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            // 封面图片（仅当 URL 合法时加载）
             val coverUrl = searchResult.cover
             if (coverUrl.isNotBlank() && (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))) {
-                val painterResource = asyncPainterResource(coverUrl)
+                val painterResource = asyncPainterResource(data = coverUrl)
                 KamelImage(
                     resource = painterResource,
                     contentDescription = searchResult.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    onFailure = { }
+                    onLoading = { progress ->
+                        Box(
+                            modifier = Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "...",
+                                style = MiuixTheme.textStyles.footnote2,
+                                color = MiuixTheme.colorScheme.outline
+                            )
+                        }
+                    },
+                    onFailure = { exception ->
+                        AppLogger.e("Image", "加载失败: $coverUrl", exception)
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = searchResult.title.take(2),
+                                style = MiuixTheme.textStyles.headline1,
+                                color = MiuixTheme.colorScheme.outline
+                            )
+                        }
+                    }
                 )
             } else {
                 Text(
@@ -70,7 +94,6 @@ fun VideoCard(
                 )
             }
 
-            // 底部渐变
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -83,7 +106,6 @@ fun VideoCard(
                     )
             )
 
-            // 来源标签
             if (searchResult.sourceName.isNotBlank()) {
                 Box(
                     modifier = Modifier
@@ -92,18 +114,12 @@ fun VideoCard(
                         .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(DesignTokens.radiusSm))
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
-                    Text(
-                        text = searchResult.sourceName,
-                        style = MiuixTheme.textStyles.footnote2,
-                        color = Color.White
-                    )
+                    Text(text = searchResult.sourceName, style = MiuixTheme.textStyles.footnote2, color = Color.White)
                 }
             }
         }
 
-        Column(
-            modifier = Modifier.padding(horizontal = DesignTokens.spacingXs, vertical = DesignTokens.spacingSm)
-        ) {
+        Column(modifier = Modifier.padding(horizontal = DesignTokens.spacingXs, vertical = DesignTokens.spacingSm)) {
             Text(
                 text = searchResult.title,
                 style = MiuixTheme.textStyles.body1,

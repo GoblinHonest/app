@@ -99,19 +99,21 @@ fun PlayerScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = title.ifBlank { "播放" },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Text("返回", style = MiuixTheme.textStyles.body2)
+        // 仅在加载中或错误时显示顶部栏
+        if (isLoading || errorMessage.isNotBlank()) {
+            TopAppBar(
+                title = title.ifBlank { "播放" },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Text("返回", style = MiuixTheme.textStyles.body2)
+                    }
                 }
-            }
-        )
+            )
+        }
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+                .fillMaxSize()
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
