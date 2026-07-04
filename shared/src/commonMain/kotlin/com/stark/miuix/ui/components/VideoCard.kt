@@ -105,18 +105,6 @@ fun VideoCard(
                         )
                     )
             )
-
-            if (searchResult.sourceName.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(DesignTokens.spacingSm)
-                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(DesignTokens.radiusSm))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(text = searchResult.sourceName, style = MiuixTheme.textStyles.footnote2, color = Color.White)
-                }
-            }
         }
 
         Column(modifier = Modifier.padding(horizontal = DesignTokens.spacingXs, vertical = DesignTokens.spacingSm)) {

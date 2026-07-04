@@ -102,8 +102,8 @@ class HomeViewModel(
                 }.awaitAll()
             }
 
-            val merged = interleave(allVideos)
-            AppLogger.d("Home", "聚合完成, 总计 ${merged.size} 条视频")
+            val merged = interleave(allVideos).deduplicateByTitle()
+            AppLogger.d("Home", "聚合完成, 去重后 ${merged.size} 条视频")
             _uiState.value = HomeUiState.Success(videos = merged, sources = sources)
         } catch (e: Exception) {
             AppLogger.e("Home", "首页加载异常", e)
@@ -120,6 +120,13 @@ class HomeViewModel(
             }
         }
         return result
+    }
+
+    /**
+     * 按标题去重 — 多源相同视频只保留第一个出现的
+     */
+    private fun List<SearchResult>.deduplicateByTitle(): List<SearchResult> {
+        return distinctBy { it.title.trim().lowercase() }
     }
 
     companion object {

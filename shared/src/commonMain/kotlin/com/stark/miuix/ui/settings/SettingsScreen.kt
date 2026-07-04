@@ -87,13 +87,6 @@ fun SettingsScreen(
                         onClick = { viewModel.setThemeMode(mode) }
                     )
                 }
-
-                SettingsSwitchItem(
-                    title = "动态取色",
-                    subtitle = "基于壁纸自动生成配色方案",
-                    checked = settings.dynamicColor,
-                    onCheckedChange = { viewModel.setDynamicColor(it) }
-                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
