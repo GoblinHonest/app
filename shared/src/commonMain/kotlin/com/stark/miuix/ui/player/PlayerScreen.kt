@@ -67,8 +67,8 @@ fun PlayerScreen(
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val viewModel = remember(videoRepository, sourceRepository, scope) {
-        DetailViewModel(videoRepository, sourceRepository, scope)
+    val viewModel = remember(videoRepository, sourceRepository) {
+        DetailViewModel(videoRepository, sourceRepository)
     }
     val decodedEpisodeUrl = UrlEncoder.decode(episodeUrl)
     var videoUrl by remember { mutableStateOf("") }

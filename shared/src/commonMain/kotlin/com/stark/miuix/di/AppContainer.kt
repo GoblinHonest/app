@@ -27,9 +27,6 @@ import com.stark.miuix.data.storage.LocalStorage
 import com.stark.miuix.data.storage.getAppDataDir
 import com.stark.miuix.ui.search.SearchViewModel
 import com.stark.miuix.util.NetworkClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 
 /**
  * 全局服务定位器
@@ -52,6 +49,5 @@ object AppContainer {
     val userDataRepository by lazy { UserDataRepository(localStorage) }
     val videoRepository by lazy { VideoRepository(sourceEngine, sourceRepository) }
 
-    private val appScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
-    val searchViewModel by lazy { SearchViewModel(videoRepository, appScope) }
+    val searchViewModel by lazy { SearchViewModel(videoRepository) }
 }

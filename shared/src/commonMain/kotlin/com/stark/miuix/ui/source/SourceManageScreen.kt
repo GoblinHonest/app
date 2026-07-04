@@ -63,8 +63,7 @@ fun SourceManageScreen(
     sourceRepository: SourceRepository,
     onNavigateBack: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val viewModel = remember(sourceRepository) { SourceManageViewModel(sourceRepository, scope) }
+    val viewModel = remember(sourceRepository) { SourceManageViewModel(sourceRepository) }
     val sources by viewModel.sources.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     var importText by remember { mutableStateOf("") }

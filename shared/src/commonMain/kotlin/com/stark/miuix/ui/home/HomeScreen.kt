@@ -74,9 +74,8 @@ fun HomeScreen(
     onNavigateToDetail: (String, String, String, String) -> Unit,
     onNavigateToSourceManage: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val viewModel = remember(videoRepository, sourceRepository, coroutineScope) {
-        HomeViewModel(videoRepository, sourceRepository, coroutineScope)
+    val viewModel = remember(videoRepository, sourceRepository) {
+        HomeViewModel(videoRepository, sourceRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()

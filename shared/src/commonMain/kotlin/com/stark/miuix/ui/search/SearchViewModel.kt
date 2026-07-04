@@ -19,7 +19,9 @@ package com.stark.miuix.ui.search
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.data.repository.VideoRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,9 +43,9 @@ sealed interface SearchUiState {
  * 减少无效网络请求，提升响应流畅度。
  */
 class SearchViewModel(
-    private val videoRepository: VideoRepository,
-    private val coroutineScope: CoroutineScope
+    private val videoRepository: VideoRepository
 ) {
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 

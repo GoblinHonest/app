@@ -18,6 +18,8 @@ package com.stark.miuix.ui.settings
 
 import com.stark.miuix.theme.ThemeState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,9 +56,8 @@ enum class ThemeMode(val label: String) {
  *
  * 管理主题配置和播放器选项，同步到 [ThemeState] 全局单例。
  */
-class SettingsViewModel(
-    private val coroutineScope: CoroutineScope
-) {
+class SettingsViewModel {
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow(SettingsState())
     val uiState: StateFlow<SettingsState> = _uiState.asStateFlow()
 

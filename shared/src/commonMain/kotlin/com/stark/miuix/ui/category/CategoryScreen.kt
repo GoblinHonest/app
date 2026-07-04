@@ -65,9 +65,8 @@ fun CategoryScreen(
     onNavigateToDetail: (String, String, String, String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val viewModel = remember(videoRepository, sourceRepository, scope) {
-        CategoryViewModel(videoRepository, sourceRepository, scope)
+    val viewModel = remember(videoRepository, sourceRepository) {
+        CategoryViewModel(videoRepository, sourceRepository)
     }
     val decodedCategoryUrl = UrlEncoder.decode(categoryUrl)
     val uiState by viewModel.uiState.collectAsState()

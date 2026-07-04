@@ -22,6 +22,8 @@ import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,9 +49,9 @@ sealed interface HomeUiState {
  */
 class HomeViewModel(
     private val videoRepository: VideoRepository,
-    private val sourceRepository: SourceRepository,
-    private val scope: CoroutineScope
+    private val sourceRepository: SourceRepository
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 

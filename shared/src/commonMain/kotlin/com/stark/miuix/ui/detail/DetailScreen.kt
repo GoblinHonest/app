@@ -79,9 +79,8 @@ fun DetailScreen(
     onNavigateToPlayer: (String, String, String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val viewModel = remember(videoRepository, sourceRepository, scope) {
-        DetailViewModel(videoRepository, sourceRepository, scope)
+    val viewModel = remember(videoRepository, sourceRepository) {
+        DetailViewModel(videoRepository, sourceRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
     val decodedUrl = UrlEncoder.decode(detailUrl)

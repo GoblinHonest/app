@@ -20,6 +20,8 @@ import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.util.NetworkClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,9 +41,9 @@ sealed interface SourceManageUiState {
  * 支持 JSON 文本导入和远程 URL 订阅导入两种方式。
  */
 class SourceManageViewModel(
-    private val sourceRepository: SourceRepository,
-    private val coroutineScope: CoroutineScope
+    private val sourceRepository: SourceRepository
 ) {
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<SourceManageUiState>(SourceManageUiState.Idle)
     val uiState: StateFlow<SourceManageUiState> = _uiState.asStateFlow()
 

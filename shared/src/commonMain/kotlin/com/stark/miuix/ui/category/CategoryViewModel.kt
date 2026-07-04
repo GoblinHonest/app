@@ -20,6 +20,8 @@ import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,9 +46,9 @@ sealed interface CategoryUiState {
  */
 class CategoryViewModel(
     private val videoRepository: VideoRepository,
-    private val sourceRepository: SourceRepository,
-    private val coroutineScope: CoroutineScope
+    private val sourceRepository: SourceRepository
 ) {
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<CategoryUiState>(CategoryUiState.Loading)
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 

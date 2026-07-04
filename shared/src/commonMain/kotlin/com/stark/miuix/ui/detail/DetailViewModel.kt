@@ -20,6 +20,8 @@ import com.stark.miuix.data.model.Video
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,9 +56,9 @@ sealed interface DetailUiState {
  */
 class DetailViewModel(
     private val videoRepository: VideoRepository,
-    private val sourceRepository: SourceRepository,
-    private val coroutineScope: CoroutineScope
+    private val sourceRepository: SourceRepository
 ) {
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
 
     /** 详情页 UI 状态 */

@@ -59,8 +59,7 @@ import com.stark.miuix.util.ClipboardUtils
 fun SettingsScreen(
     onNavigateBack: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val viewModel = remember(scope) { SettingsViewModel(scope) }
+    val viewModel = remember { SettingsViewModel() }
     val settings by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
