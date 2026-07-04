@@ -140,9 +140,10 @@ actual fun VideoPlayer(
                                     if (isDragging) {
                                         when (dragType) {
                                             1 -> {
-                                                // 横滑 — 进度
+                                                // 横滑 — 进度（实时跟随）
                                                 val seekDelta = (dx / viewWidth * exoPlayer.duration * 0.5).toLong()
                                                 val newPos = (startPosition + seekDelta).coerceIn(0, exoPlayer.duration)
+                                                exoPlayer.seekTo(newPos)
                                                 val sign = if (seekDelta >= 0) "+" else ""
                                                 gestureText = "${sign}${seekDelta / 1000}s → ${formatTime(newPos)}"
                                             }
@@ -170,12 +171,6 @@ actual fun VideoPlayer(
                                     if (isLongPress) {
                                         isLongPress = false
                                         exoPlayer.setPlaybackSpeed(1.0f)
-                                    }
-                                    if (isDragging && dragType == 1) {
-                                        val dx = event.x - startX
-                                        val seekDelta = (dx / viewWidth * exoPlayer.duration * 0.5).toLong()
-                                        val newPos = (startPosition + seekDelta).coerceIn(0, exoPlayer.duration)
-                                        exoPlayer.seekTo(newPos)
                                     }
                                     isDragging = false
                                     gestureText = ""
