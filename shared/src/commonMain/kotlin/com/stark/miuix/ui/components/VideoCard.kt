@@ -1,17 +1,5 @@
 /*
  * Copyright 2024 Stark Industries
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package com.stark.miuix.ui.components
@@ -43,11 +31,6 @@ import io.kamel.image.asyncPainterResource
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * 视频卡片 — 安全的图片加载
- *
- * 使用 try-catch 包裹 KamelImage，防止图片加载崩溃导致整个页面闪退。
- */
 @Composable
 fun VideoCard(
     searchResult: SearchResult,
@@ -68,10 +51,16 @@ fun VideoCard(
                 .background(MiuixTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            if (searchResult.cover.isNotBlank()) {
-                SafeKamelImage(
-                    url = searchResult.cover,
-                    contentDescription = searchResult.title
+            // 封面图片（仅当 URL 合法时加载）
+            val coverUrl = searchResult.cover
+            if (coverUrl.isNotBlank() && (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))) {
+                val painterResource = asyncPainterResource(coverUrl)
+                KamelImage(
+                    resource = painterResource,
+                    contentDescription = searchResult.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    onFailure = { }
                 )
             } else {
                 Text(
@@ -81,6 +70,7 @@ fun VideoCard(
                 )
             }
 
+            // 底部渐变
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -93,15 +83,13 @@ fun VideoCard(
                     )
             )
 
+            // 来源标签
             if (searchResult.sourceName.isNotBlank()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(DesignTokens.spacingSm)
-                        .background(
-                            Color.Black.copy(alpha = 0.6f),
-                            RoundedCornerShape(DesignTokens.radiusSm)
-                        )
+                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(DesignTokens.radiusSm))
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -114,10 +102,7 @@ fun VideoCard(
         }
 
         Column(
-            modifier = Modifier.padding(
-                horizontal = DesignTokens.spacingXs,
-                vertical = DesignTokens.spacingSm
-            )
+            modifier = Modifier.padding(horizontal = DesignTokens.spacingXs, vertical = DesignTokens.spacingSm)
         ) {
             Text(
                 text = searchResult.title,
@@ -126,7 +111,6 @@ fun VideoCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-
             if (searchResult.description.isNotBlank()) {
                 Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
                 Text(
@@ -137,36 +121,6 @@ fun VideoCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-        }
-    }
-}
-
-/**
- * 安全的图片加载组件
- *
- * 包裹 KamelImage，加载失败时显示占位文字而非崩溃。
- */
-@Composable
-private fun SafeKamelImage(url: String, contentDescription: String) {
-    try {
-        val painterResource = asyncPainterResource(url)
-        KamelImage(
-            resource = painterResource,
-            contentDescription = contentDescription,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            onFailure = { }
-        )
-    } catch (_: Exception) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = contentDescription.take(2),
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.outline
-            )
         }
     }
 }

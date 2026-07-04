@@ -158,17 +158,15 @@ fun DetailScreen(
                                 .height(240.dp)
                                 .background(Color(0xFF1A1A1A))
                         ) {
-                            if (video.cover.isNotBlank()) {
-                                try {
-                                    val painterResource = asyncPainterResource(video.cover)
-                                    KamelImage(
-                                        resource = painterResource,
-                                        contentDescription = video.title,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop,
-                                        onFailure = { }
-                                    )
-                                } catch (_: Exception) { }
+                            if (video.cover.isNotBlank() && (video.cover.startsWith("http://") || video.cover.startsWith("https://"))) {
+                                val painterResource = asyncPainterResource(video.cover)
+                                KamelImage(
+                                    resource = painterResource,
+                                    contentDescription = video.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    onFailure = { }
+                                )
                             }
                             Box(
                                 modifier = Modifier
