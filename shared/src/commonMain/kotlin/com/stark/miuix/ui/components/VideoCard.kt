@@ -20,14 +20,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -46,12 +44,9 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 视频卡片 — 视频 App 专业风格
+ * 视频卡片 — 安全的图片加载
  *
- * 设计参考 B站/YouTube 卡片：
- * - 16:10 圆角封面 + 底部渐变遮罩
- * - 来源标签（右上角半透明芯片）
- * - 标题两行、描述一行、紧凑间距
+ * 使用 try-catch 包裹 KamelImage，防止图片加载崩溃导致整个页面闪退。
  */
 @Composable
 fun VideoCard(
@@ -65,55 +60,27 @@ fun VideoCard(
             .clip(RoundedCornerShape(DesignTokens.radiusMd))
             .clickable(onClick = onClick)
     ) {
-        // 封面区域
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(DesignTokens.coverAspectRatio)
                 .clip(RoundedCornerShape(DesignTokens.radiusMd))
-                .background(MiuixTheme.colorScheme.surfaceVariant)
+                .background(MiuixTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
         ) {
             if (searchResult.cover.isNotBlank()) {
-                val painterResource = asyncPainterResource(searchResult.cover)
-                KamelImage(
-                    resource = painterResource,
-                    contentDescription = searchResult.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    onLoading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MiuixTheme.colorScheme.surfaceVariant)
-                        )
-                    },
-                    onFailure = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = searchResult.title.take(2),
-                                style = MiuixTheme.textStyles.headline1,
-                                color = MiuixTheme.colorScheme.outline
-                            )
-                        }
-                    }
+                SafeKamelImage(
+                    url = searchResult.cover,
+                    contentDescription = searchResult.title
                 )
             } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = searchResult.title.take(2),
-                        style = MiuixTheme.textStyles.headline1,
-                        color = MiuixTheme.colorScheme.outline
-                    )
-                }
+                Text(
+                    text = searchResult.title.take(2),
+                    style = MiuixTheme.textStyles.headline1,
+                    color = MiuixTheme.colorScheme.outline
+                )
             }
 
-            // 底部渐变遮罩
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -126,7 +93,6 @@ fun VideoCard(
                     )
             )
 
-            // 来源标签（右上角）
             if (searchResult.sourceName.isNotBlank()) {
                 Box(
                     modifier = Modifier
@@ -147,7 +113,6 @@ fun VideoCard(
             }
         }
 
-        // 信息区域
         Column(
             modifier = Modifier.padding(
                 horizontal = DesignTokens.spacingXs,
@@ -172,6 +137,36 @@ fun VideoCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+}
+
+/**
+ * 安全的图片加载组件
+ *
+ * 包裹 KamelImage，加载失败时显示占位文字而非崩溃。
+ */
+@Composable
+private fun SafeKamelImage(url: String, contentDescription: String) {
+    try {
+        val painterResource = asyncPainterResource(url)
+        KamelImage(
+            resource = painterResource,
+            contentDescription = contentDescription,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            onFailure = { }
+        )
+    } catch (_: Exception) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = contentDescription.take(2),
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.outline
+            )
         }
     }
 }

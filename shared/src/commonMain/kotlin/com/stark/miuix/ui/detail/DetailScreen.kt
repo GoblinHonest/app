@@ -159,14 +159,16 @@ fun DetailScreen(
                                 .background(Color(0xFF1A1A1A))
                         ) {
                             if (video.cover.isNotBlank()) {
-                                val painterResource = asyncPainterResource(video.cover)
-                                KamelImage(
-                                    resource = painterResource,
-                                    contentDescription = video.title,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop,
-                                    onFailure = { }
-                                )
+                                try {
+                                    val painterResource = asyncPainterResource(video.cover)
+                                    KamelImage(
+                                        resource = painterResource,
+                                        contentDescription = video.title,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop,
+                                        onFailure = { }
+                                    )
+                                } catch (_: Exception) { }
                             }
                             Box(
                                 modifier = Modifier
