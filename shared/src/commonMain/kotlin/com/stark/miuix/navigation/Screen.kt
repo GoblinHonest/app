@@ -78,8 +78,16 @@ sealed class Screen {
  * @property label Tab 显示文字
  * @property screen 对应的目标页面
  */
+/**
+ * 底部导航 Tab 定义
+ *
+ * icon 使用语义清晰的 Unicode 符号，对标 Bangumi App 图标风格：
+ * - 首页：方形播放框
+ * - 搜索：圆形搜索
+ * - 我的：人形轮廓
+ */
 enum class BottomTab(val label: String, val icon: String, val screen: Screen) {
-    HOME("首页", "⊡", Screen.Home),
-    SEARCH("搜索", "⊙", Screen.Search),
-    PROFILE("我的", "⊛", Screen.Profile)
+    HOME("首页", "⬛", Screen.Home),
+    SEARCH("搜索", "🔍", Screen.Search),
+    PROFILE("我的", "👤", Screen.Profile)
 }

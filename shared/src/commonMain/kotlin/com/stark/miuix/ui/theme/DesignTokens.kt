@@ -24,7 +24,7 @@ object DesignTokens {
     val radiusXl = 20.dp
     val radiusPill = 100.dp
     const val coverAspectRatio = 2f / 3f
-    val searchBarHeight = 40.dp
+    val searchBarHeight = 44.dp  // iOS HIG 最小触控目标
     val bottomBarHeight = 56.dp
     val gridMinWidth = 108.dp
     val cardGap = 8.dp
