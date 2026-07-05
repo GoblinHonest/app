@@ -29,3 +29,9 @@ iosApp/*.xcodeproj/xcuserdata/
 # OS
 Thumbs.db
 .DS_Store
+
+# Screenshots & design assets (root level)
+/*.jpg
+/*.jpeg
+/*.png
+/*.webp
