@@ -166,9 +166,8 @@ fun DetailScreen(
                                 .background(Color(0xFF1A1A1A))
                         ) {
                             if (video.cover.isNotBlank() && (video.cover.startsWith("http://") || video.cover.startsWith("https://"))) {
-                                val painterResource = asyncPainterResource(video.cover)
                                 KamelImage(
-                                    resource = painterResource,
+                                    resource = { asyncPainterResource(video.cover) },
                                     contentDescription = video.title,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop,

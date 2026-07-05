@@ -285,9 +285,8 @@ private fun BannerCard(
         if (coverUrl.isNotBlank() &&
             (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))
         ) {
-            val painterResource = asyncPainterResource(data = coverUrl)
             KamelImage(
-                resource = painterResource,
+                resource = { asyncPainterResource(data = coverUrl) },
                 contentDescription = video.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,

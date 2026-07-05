@@ -83,9 +83,8 @@ fun VideoCard(
             if (coverUrl.isNotBlank() &&
                 (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))
             ) {
-                val painterResource = asyncPainterResource(data = coverUrl)
                 KamelImage(
-                    resource = painterResource,
+                    resource = { asyncPainterResource(data = coverUrl) },
                     contentDescription = searchResult.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
