@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,6 +55,12 @@ import com.stark.miuix.data.model.WatchHistory
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.ui.icons.IconDownload
+import com.stark.miuix.ui.icons.IconLike
+import com.stark.miuix.ui.icons.IconRank
+import com.stark.miuix.ui.icons.IconShare
+import com.stark.miuix.ui.icons.IconStar
+import com.stark.miuix.ui.icons.IconChat
 import com.stark.miuix.ui.components.EpisodeList
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
@@ -343,25 +350,34 @@ fun DetailScreen(
                     // 底部操作栏（对标设计图：收藏/换源/分享）
                     item {
                         Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
+                        // 底部操作栏 — 逆向图标: like/star/chat/share/download/rank
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            val actions = listOf(
-                                Pair("♡", "收藏"),
-                                Pair("⊕", "换源"),
-                                Pair("↑", "分享")
-                            )
-                            actions.forEach { (icon, label) ->
+                            val isFav = isFavorite
+                            listOf(
+                                Triple(if (isFav) IconStar else IconLike, if (isFav) "已收藏" else "收藏") { viewModel.switchSource(state.currentSource) },
+                                Triple(IconChat, "评论") {},
+                                Triple(IconShare, "分享") { copyToClipboard("${video.title}\n${decodedUrl}") },
+                                Triple(IconDownload, "缓存") {},
+                                Triple(IconRank, "排行") {}
+                            ).forEach { (icon, label, action) ->
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
-                                        .clickable { /* TODO */ }
-                                        .padding(horizontal = DesignTokens.spacingLg)
+                                        .clickable { action() }
+                                        .padding(horizontal = DesignTokens.spacingMd)
                                 ) {
-                                    Text(icon, style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
+                                    androidx.compose.foundation.Image(
+                                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
+                                        contentDescription = label,
+                                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(label, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                                 }
                             }
