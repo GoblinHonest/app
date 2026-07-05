@@ -18,6 +18,8 @@ package com.stark.miuix.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +29,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -271,31 +275,99 @@ fun DetailScreen(
                         }
                     }
 
-                    // 剧集列表
+                    // 选集区（横滑按钮，对标设计图）
                     if (video.episodes.isNotEmpty()) {
                         item {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm)
                             ) {
-                                Text(
-                                    text = "剧集 (${video.episodes.size})",
-                                    style = MiuixTheme.textStyles.body1,
-                                    color = MiuixTheme.colorScheme.onSurface
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "选集",
+                                        style = MiuixTheme.textStyles.body1,
+                                        color = MiuixTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = "全 ${video.episodes.size} 集",
+                                        style = MiuixTheme.textStyles.footnote1,
+                                        color = MiuixTheme.colorScheme.outline
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
+                                // 横滑选集按钮
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+                                ) {
+                                    video.episodes.forEachIndexed { index, episode ->
+                                        val isFirst = index == 0
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(DesignTokens.radiusSm))
+                                                .background(
+                                                    if (isFirst) DesignTokens.brandBlue.copy(alpha = 0.12f)
+                                                    else MiuixTheme.colorScheme.surfaceVariant
+                                                )
+                                                .run {
+                                                    if (isFirst) border(
+                                                        1.dp,
+                                                        DesignTokens.brandBlue,
+                                                        RoundedCornerShape(DesignTokens.radiusSm)
+                                                    ) else this
+                                                }
+                                                .clickable {
+                                                    onNavigateToPlayer(state.currentSource, episode.url, video.title)
+                                                }
+                                                .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
+                                        ) {
+                                            Text(
+                                                text = episode.name.ifBlank { "第${index + 1}集" },
+                                                style = MiuixTheme.textStyles.body2,
+                                                color = if (isFirst) DesignTokens.brandBlue
+                                                        else MiuixTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
-                        item {
-                            EpisodeList(
-                                episodes = video.episodes,
-                                onEpisodeClick = { episode ->
-                                    onNavigateToPlayer(state.currentSource, episode.url, video.title)
-                                }
+                    }
+
+                    // 底部操作栏（对标设计图：收藏/换源/分享）
+                    item {
+                        Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            val actions = listOf(
+                                Pair("♡", "收藏"),
+                                Pair("⊕", "换源"),
+                                Pair("↑", "分享")
                             )
+                            actions.forEach { (icon, label) ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .clickable { /* TODO */ }
+                                        .padding(horizontal = DesignTokens.spacingLg)
+                                ) {
+                                    Text(icon, style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
+                                    Text(label, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
+                                }
+                            }
                         }
+                        Spacer(modifier = Modifier.height(DesignTokens.spacingXl))
                     }
                 }
             }
