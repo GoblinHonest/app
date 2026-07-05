@@ -93,6 +93,10 @@ class HomeViewModel(
                             val result = videoRepository.getCategoryVideos(source)
                             val videos = result.getOrDefault(emptyList()).take(PER_SOURCE_LIMIT)
                             AppLogger.d("Home", "源[${source.sourceName}] 加载 ${videos.size} 条")
+                            // 打印每条视频的封面 URL，方便排查图片不显示问题
+                            videos.forEachIndexed { i, v ->
+                                AppLogger.d("Cover", "[$i] title=${v.title.take(10)} cover=${v.cover.take(80)}")
+                            }
                             videos
                         } catch (e: Exception) {
                             AppLogger.e("Home", "源[${source.sourceName}] 加载失败", e)
