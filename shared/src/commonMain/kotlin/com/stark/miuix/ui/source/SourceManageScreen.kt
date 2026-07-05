@@ -45,6 +45,10 @@ import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.ui.components.SourceCard
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import com.stark.miuix.ui.icons.IconBack
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
@@ -75,7 +79,7 @@ fun SourceManageScreen(
             title = "视频源管理",
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Text("返回", style = MiuixTheme.textStyles.body2)
+                    androidx.compose.foundation.Image(painter=rememberVectorPainter(IconBack),contentDescription="返回",colorFilter=ColorFilter.tint(MiuixTheme.colorScheme.onSurface),modifier=androidx.compose.ui.Modifier.size(20.dp))
                 }
             },
             actions = {

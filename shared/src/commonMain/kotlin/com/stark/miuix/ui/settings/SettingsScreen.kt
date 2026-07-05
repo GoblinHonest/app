@@ -38,6 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Card
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import com.stark.miuix.ui.icons.IconBack
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
@@ -67,7 +71,12 @@ fun SettingsScreen(
             title = "设置",
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Text("返回", style = MiuixTheme.textStyles.body2)
+                    androidx.compose.foundation.Image(
+                        painter = rememberVectorPainter(IconBack),
+                        contentDescription = "返回",
+                        colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+                        modifier = androidx.compose.ui.Modifier.size(20.dp)
+                    )
                 }
             }
         )
