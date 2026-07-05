@@ -79,7 +79,7 @@ sealed class Screen {
  * @property screen 对应的目标页面
  */
 enum class BottomTab(val label: String, val icon: String, val screen: Screen) {
-    HOME("首页", "▶", Screen.Home),
-    SEARCH("搜索", "◎", Screen.Search),
-    PROFILE("我的", "☰", Screen.Profile)
+    HOME("首页", "⊞", Screen.Home),
+    SEARCH("搜索", "⊙", Screen.Search),
+    PROFILE("我的", "☺", Screen.Profile)
 }

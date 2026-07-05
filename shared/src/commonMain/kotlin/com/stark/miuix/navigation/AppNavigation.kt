@@ -242,9 +242,17 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.88f))
+            .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.95f))
             .navigationBarsPadding()
     ) {
+        // 顶部分割线
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.15f))
+                .align(Alignment.TopCenter)
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -254,11 +262,11 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
         ) {
             BottomTab.entries.forEachIndexed { index, tab ->
                 val selected = index == selectedIndex
-                val targetColor = if (selected) MiuixTheme.colorScheme.primary
+                val targetColor = if (selected) DesignTokens.brandBlue
                                   else MiuixTheme.colorScheme.outline
                 val animatedColor by animateColorAsState(
                     targetValue = targetColor,
-                    animationSpec = tween(250)
+                    animationSpec = tween(200)
                 )
 
                 Column(
