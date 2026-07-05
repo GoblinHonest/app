@@ -44,6 +44,17 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.stark.miuix.ui.icons.IconBack
+import com.stark.miuix.ui.icons.IconDanmaku
+import com.stark.miuix.ui.icons.IconDanmakuOff
+import com.stark.miuix.ui.icons.IconFloating
+import com.stark.miuix.ui.icons.IconFullscreen
+import com.stark.miuix.ui.icons.IconHD
+import com.stark.miuix.ui.icons.IconLock
+import com.stark.miuix.ui.icons.IconMore
+import com.stark.miuix.ui.icons.IconNext
+import com.stark.miuix.ui.icons.IconPause
+import com.stark.miuix.ui.icons.IconPlay
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -241,7 +252,7 @@ actual fun VideoPlayer(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
 
-                // 顶部栏：← 返回 | 标题 | 倍速
+                // 顶部栏：← 返回 | 标题 | 更多
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -255,11 +266,11 @@ actual fun VideoPlayer(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "←",
-                        style = MiuixTheme.textStyles.headline1,
-                        color = Color.White,
-                        modifier = Modifier.clickable { activity?.onBackPressed() }
+                    // ← 返回 (逆向: video_back.svg)
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconBack),
+                        contentDescription = "返回",
+                        modifier = Modifier.size(22.dp).clickable { activity?.onBackPressed() }
                     )
                     Text(
                         text = title,
@@ -268,7 +279,7 @@ actual fun VideoPlayer(
                         modifier = Modifier.weight(1f),
                         maxLines = 1
                     )
-                    // 倍速按钮（对标设计图右侧操作区）
+                    // 倍速 + 选集 文字按钮（保持文字，逆向APK也是文字label）
                     listOf("倍速", "选集").forEach { label ->
                         Text(
                             text = if (label == "倍速") "${playbackSpeed}x" else label,
@@ -300,10 +311,17 @@ actual fun VideoPlayer(
                         .clickable { /* 锁屏功能 */ },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("🔓", style = MiuixTheme.textStyles.body2, color = Color.White)
+                    // lock/unlock SVG (逆向: lock.svg / unlock.svg)
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
+                            if (isLocked) IconLock else IconLock
+                        ),
+                        contentDescription = "锁屏",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
-                // 中央播放/暂停（双击区域）
+                // 中央播放/暂停 — SVG图标 (逆向: play.svg / pause.svg)
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -315,10 +333,12 @@ actual fun VideoPlayer(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isPlaying) "⏸" else "▶",
-                        style = MiuixTheme.textStyles.headline1,
-                        color = Color.White
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
+                            if (isPlaying) IconPause else IconPlay
+                        ),
+                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        modifier = Modifier.size(28.dp)
                     )
                 }
 
@@ -382,50 +402,53 @@ actual fun VideoPlayer(
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    // 功能栏：▶ | ⏭ | 弹幕 ··· 超分辨率 | 倍速 | 选集
+                    // 功能栏 — 完全使用SVG图标（逆向APK icons/*.svg）
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // ▶/⏸ 播放暂停 (逆向: play/pause)
-                        Text(
-                            text = if (isPlaying) "⏸" else "▶",
-                            style = MiuixTheme.textStyles.body1,
-                            color = Color.White,
-                            modifier = Modifier.clickable {
+                        // play/pause SVG (逆向: play.svg/pause.svg)
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
+                                if (isPlaying) IconPause else IconPlay
+                            ),
+                            contentDescription = if (isPlaying) "暂停" else "播放",
+                            modifier = Modifier.size(20.dp).clickable {
                                 if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                             }.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
-                        // ⏭ 下一集 (逆向: next)
-                        Text(
-                            text = "⏭",
-                            style = MiuixTheme.textStyles.body1,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        // next SVG (逆向: next.svg)
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconNext),
+                            contentDescription = "下一集",
+                            modifier = Modifier.size(20.dp).padding(horizontal = 8.dp, vertical = 4.dp)
                         )
-                        // 弹幕开关 (逆向: dm_open / dm_close)
-                        Text(
-                            text = if (dmEnabled) "弹" else "弹",
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = if (dmEnabled) Color(0xFF3D7BF9) else Color.White.copy(alpha = 0.5f),
+                        // 弹幕 SVG (逆向: dm_open.svg / dm_close.svg)
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
+                                if (dmEnabled) IconDanmaku else IconDanmakuOff
+                            ),
+                            contentDescription = "弹幕",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                if (dmEnabled) Color(0xFF3D7BF9) else Color.White.copy(alpha = 0.5f)
+                            ),
                             modifier = Modifier
+                                .size(20.dp)
                                 .background(
-                                    if (dmEnabled) Color(0xFF3D7BF9).copy(alpha = 0.2f)
-                                    else Color.Transparent,
+                                    if (dmEnabled) Color(0xFF3D7BF9).copy(alpha = 0.2f) else Color.Transparent,
                                     RoundedCornerShape(4.dp)
                                 )
                                 .clickable { dmEnabled = !dmEnabled }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        // 超分辨率 (逆向: Anime4K shaders)
-                        Text(
-                            text = "超分",
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(horizontal = 5.dp)
+                        // HD SVG (逆向: Anime4K 超分辨率)
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconHD),
+                            contentDescription = "超分",
+                            modifier = Modifier.size(20.dp).padding(horizontal = 5.dp)
                         )
-                        // 倍速 (逆向: clock/settings)
+                        // 倍速文字（保持文字，逆向APK也用文字标签）
                         Text(
                             text = "${playbackSpeed}x",
                             style = MiuixTheme.textStyles.footnote2,
@@ -440,19 +463,17 @@ actual fun VideoPlayer(
                                 }
                                 .padding(horizontal = 5.dp)
                         )
-                        // 悬浮窗 (逆向: floating)
-                        Text(
-                            text = "悬浮",
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(horizontal = 5.dp)
+                        // 悬浮 SVG (逆向: floating.svg)
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFloating),
+                            contentDescription = "悬浮",
+                            modifier = Modifier.size(20.dp).padding(horizontal = 5.dp)
                         )
-                        // 选集 (逆向: arc/book)
-                        Text(
-                            text = "选集",
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(start = 5.dp)
+                        // 全屏 SVG (逆向: full.svg)
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFullscreen),
+                            contentDescription = "全屏",
+                            modifier = Modifier.size(20.dp).padding(start = 5.dp)
                         )
                     }
                 }

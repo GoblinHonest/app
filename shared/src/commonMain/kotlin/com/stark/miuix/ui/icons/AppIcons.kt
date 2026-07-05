@@ -352,7 +352,137 @@ val IconRank: ImageVector
         moveTo(2f, 20f); lineTo(22f, 20f)
     }.build()
 
-/** 返回图标 — 左箭头 */
+/** 弹幕图标（关闭态）— dm_close */
+val IconDanmakuOff: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round
+    ) {
+        // 3条线 + 删除斜线
+        moveTo(4f, 8f); lineTo(20f, 8f)
+        moveTo(4f, 12f); lineTo(16f, 12f)
+        moveTo(4f, 16f); lineTo(12f, 16f)
+        // 斜线表示关闭
+        moveTo(16f, 14f); lineTo(20f, 18f)
+        moveTo(20f, 14f); lineTo(16f, 18f)
+    }.build()
+
+/** 全屏退出图标 — full */
+val IconExitFullscreen: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round
+    ) {
+        // 四角向内
+        moveTo(9f, 4f); lineTo(4f, 4f); lineTo(4f, 9f)
+        moveTo(15f, 4f); lineTo(20f, 4f); lineTo(20f, 9f)
+        moveTo(20f, 15f); lineTo(20f, 20f); lineTo(15f, 20f)
+        moveTo(9f, 20f); lineTo(4f, 20f); lineTo(4f, 15f)
+    }.build()
+
+/** 删除/取消图标 — cancel/delete */
+val IconCancel: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round
+    ) {
+        moveTo(18f, 6f); lineTo(6f, 18f)
+        moveTo(6f, 6f); lineTo(18f, 18f)
+    }.build()
+
+/** 更多操作图标 — more */
+val IconMore: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round
+    ) {
+        // 三个点
+        moveTo(12f, 5f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 5.01f)
+        moveTo(12f, 12f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 12.01f)
+        moveTo(12f, 19f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 19.01f)
+    }.build()
+
+/** 分辨率/超清图标 */
+val IconHD: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        // HD 文字形状
+        moveTo(4f, 8f); lineTo(4f, 16f)
+        moveTo(4f, 12f); lineTo(9f, 12f)
+        moveTo(9f, 8f); lineTo(9f, 16f)
+        // D字
+        moveTo(13f, 8f); lineTo(13f, 16f)
+        moveTo(13f, 8f); curveTo(17f, 8f, 19f, 10f, 19f, 12f)
+        curveTo(19f, 14f, 17f, 16f, 13f, 16f)
+    }.build()
+
+/** 反馈图标 — feedback */
+val IconFeedback: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        // 感叹号圆圈
+        moveTo(12f, 8f); lineTo(12f, 12f)
+        moveTo(12f, 16f); lineTo(12.01f, 16f)
+        moveTo(22f, 12f)
+        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 22f)
+        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 12f)
+        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 22f, 12f)
+    }.build()
+
+/** 邮件图标 — mail */
+val IconMail: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = vbSize, viewportHeight = vbSize
+    ).path(
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        // 信封外框
+        moveTo(3f, 6f)
+        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 4f)
+        lineTo(19f, 4f)
+        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 21f, 6f)
+        lineTo(21f, 18f)
+        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 20f)
+        lineTo(5f, 20f)
+        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 18f)
+        close()
+        // V形折痕
+        moveTo(3f, 6f); lineTo(12f, 13f); lineTo(21f, 6f)
+    }.build()
 val IconBack: ImageVector
     get() = ImageVector.Builder(
         defaultWidth = 24.dp, defaultHeight = 24.dp,
