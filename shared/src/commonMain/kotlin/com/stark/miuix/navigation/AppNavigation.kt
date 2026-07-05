@@ -38,7 +38,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -282,10 +284,14 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
                         }
                         .padding(vertical = DesignTokens.spacingSm)
                 ) {
-                    Text(
-                        text = tab.icon,
-                        style = MiuixTheme.textStyles.headline1,
-                        color = animatedColor
+                    // 自绘 SVG 路径图标（逆向: home.svg / search.svg / user.svg）
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(tab.imageVector),
+                        contentDescription = tab.label,
+                        colorFilter = ColorFilter.tint(animatedColor),
+                        modifier = Modifier
+                            .size(22.dp)
+                            .padding(bottom = 2.dp)
                     )
                     Text(
                         text = tab.label,

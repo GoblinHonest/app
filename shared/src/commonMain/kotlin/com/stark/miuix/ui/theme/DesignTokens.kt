@@ -28,8 +28,8 @@ object DesignTokens {
     val bottomBarHeight = 56.dp
     val gridMinWidth = 108.dp
     val cardGap = 8.dp
-    val brandBlue = Color(0xFF3478F6)
-    val brandBlueDark = Color(0xFF1A5FD4)
+    val brandBlue = Color(0xFF3D7BF9)      // APK colors.xml: appinfo_tab_selected_color
+    val brandBlueDark = Color(0xFF2B5EC9)  // 深色变体
     val badgeRed = Color(0xFFE11D48)
     val badgeOrange = Color(0xFFFF6B35)
     val bottomBarAlpha = 0.92f

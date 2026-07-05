@@ -88,6 +88,8 @@ actual fun VideoPlayer(
     var duration by remember { mutableLongStateOf(1L) }
     var gestureText by remember { mutableStateOf("") }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    var dmEnabled by remember { mutableStateOf(false) }   // 弹幕开关 (逆向: dm_open/dm_close)
+    var isLocked by remember { mutableStateOf(false) }    // 锁屏 (逆向: lock/unlock)
 
     // 全屏 + 隐藏系统栏
     DisposableEffect(Unit) {
@@ -385,6 +387,7 @@ actual fun VideoPlayer(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // ▶/⏸ 播放暂停 (逆向: play/pause)
                         Text(
                             text = if (isPlaying) "⏸" else "▶",
                             style = MiuixTheme.textStyles.body1,
@@ -393,19 +396,36 @@ actual fun VideoPlayer(
                                 if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                             }.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
+                        // ⏭ 下一集 (逆向: next)
                         Text(
                             text = "⏭",
                             style = MiuixTheme.textStyles.body1,
                             color = Color.White,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
+                        // 弹幕开关 (逆向: dm_open / dm_close)
+                        Text(
+                            text = if (dmEnabled) "弹" else "弹",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = if (dmEnabled) Color(0xFF3D7BF9) else Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .background(
+                                    if (dmEnabled) Color(0xFF3D7BF9).copy(alpha = 0.2f)
+                                    else Color.Transparent,
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .clickable { dmEnabled = !dmEnabled }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
                         Spacer(modifier = Modifier.weight(1f))
+                        // 超分辨率 (逆向: Anime4K shaders)
                         Text(
                             text = "超分",
                             style = MiuixTheme.textStyles.footnote2,
                             color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(horizontal = 6.dp)
+                            modifier = Modifier.padding(horizontal = 5.dp)
                         )
+                        // 倍速 (逆向: clock/settings)
                         Text(
                             text = "${playbackSpeed}x",
                             style = MiuixTheme.textStyles.footnote2,
@@ -418,13 +438,21 @@ actual fun VideoPlayer(
                                     playbackSpeed = next
                                     exoPlayer.setPlaybackSpeed(next)
                                 }
-                                .padding(horizontal = 6.dp)
+                                .padding(horizontal = 5.dp)
                         )
+                        // 悬浮窗 (逆向: floating)
+                        Text(
+                            text = "悬浮",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(horizontal = 5.dp)
+                        )
+                        // 选集 (逆向: arc/book)
                         Text(
                             text = "选集",
                             style = MiuixTheme.textStyles.footnote2,
                             color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(start = 6.dp)
+                            modifier = Modifier.padding(start = 5.dp)
                         )
                     }
                 }

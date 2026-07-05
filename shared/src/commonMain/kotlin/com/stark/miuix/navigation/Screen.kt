@@ -16,6 +16,10 @@
 
 package com.stark.miuix.navigation
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.stark.miuix.ui.icons.IconHome
+import com.stark.miuix.ui.icons.IconSearch
+import com.stark.miuix.ui.icons.IconUser
 import kotlinx.serialization.Serializable
 
 /**
@@ -73,21 +77,12 @@ sealed class Screen {
 }
 
 /**
- * 底部导航栏 Tab 定义
+ * 底部导航 Tab — 对标逆向 APK 图标集
  *
- * @property label Tab 显示文字
- * @property screen 对应的目标页面
+ * 使用自绘 SVG 路径图标，对应逆向提取的 home.svg / search.svg / user.svg
  */
-/**
- * 底部导航 Tab 定义
- *
- * icon 使用语义清晰的 Unicode 符号，对标 Bangumi App 图标风格：
- * - 首页：方形播放框
- * - 搜索：圆形搜索
- * - 我的：人形轮廓
- */
-enum class BottomTab(val label: String, val icon: String, val screen: Screen) {
-    HOME("首页", "⬛", Screen.Home),
-    SEARCH("搜索", "🔍", Screen.Search),
-    PROFILE("我的", "👤", Screen.Profile)
+enum class BottomTab(val label: String, val imageVector: ImageVector, val screen: Screen) {
+    HOME("首页", IconHome, Screen.Home),
+    SEARCH("搜索", IconSearch, Screen.Search),
+    PROFILE("我的", IconUser, Screen.Profile)
 }
