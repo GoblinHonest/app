@@ -33,7 +33,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,9 +72,8 @@ fun HomeScreen(
     onNavigateToDetail: (String, String, String, String) -> Unit,
     onNavigateToSourceManage: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val viewModel = remember(videoRepository, sourceRepository, coroutineScope) {
-        HomeViewModel(videoRepository, sourceRepository, coroutineScope)
+    val viewModel = remember(videoRepository, sourceRepository) {
+        HomeViewModel(videoRepository, sourceRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
