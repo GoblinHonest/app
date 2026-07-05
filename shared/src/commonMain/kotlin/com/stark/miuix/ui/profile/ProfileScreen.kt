@@ -27,10 +27,13 @@ import com.stark.miuix.ui.icons.IconDownload
 import com.stark.miuix.ui.icons.IconHistory
 import com.stark.miuix.ui.icons.IconLike
 import com.stark.miuix.ui.icons.IconNotice
+import com.stark.miuix.ui.icons.IconPaint
 import com.stark.miuix.ui.icons.IconRank
 import com.stark.miuix.ui.icons.IconSettings
 import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.icons.IconStar
+import com.stark.miuix.ui.icons.IconWeek
+import com.stark.miuix.ui.icons.IconWelfare
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -361,26 +364,52 @@ private fun FeatureGrid(
     onNavigateToSourceManage: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    Row(
+    // 2×2 功能网格 — 对标逆向APK: welfare/week/book/paint
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = DesignTokens.screenPadding),
-        horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+        verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
     ) {
-        FeatureCard(
-            icon = IconRank,
-            title = "视频源管理",
-            subtitle = "添加 / 切换视频源",
-            modifier = Modifier.weight(1f),
-            onClick = onNavigateToSourceManage
-        )
-        FeatureCard(
-            icon = IconSettings,
-            title = "主题切换",
-            subtitle = "选择亮色或暗色",
-            modifier = Modifier.weight(1f),
-            onClick = onNavigateToSettings
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+        ) {
+            FeatureCard(
+                icon = IconRank,
+                title = "视频源管理",
+                subtitle = "添加 / 切换视频源",
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToSourceManage
+            )
+            FeatureCard(
+                icon = IconPaint,
+                title = "主题切换",
+                subtitle = "选择亮色或暗色",
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToSettings
+            )
+        }
+        // 第二行 — 逆向APK: welfare.svg / week.svg
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+        ) {
+            FeatureCard(
+                icon = IconWelfare,
+                title = "福利中心",
+                subtitle = "每日签到领奖励",
+                modifier = Modifier.weight(1f),
+                onClick = {}
+            )
+            FeatureCard(
+                icon = IconWeek,
+                title = "本周排期",
+                subtitle = "追番更新时间表",
+                modifier = Modifier.weight(1f),
+                onClick = {}
+            )
+        }
     }
 }
 
