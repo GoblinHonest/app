@@ -180,8 +180,9 @@ actual fun VideoPlayer(
                                 if (isDragging) {
                                     when (dragType) {
                                         1 -> {
-                                            val seekDelta = (dx / viewWidth * exoPlayer.duration * 0.5).toLong()
-                                            val newPos = (startPosition + seekDelta).coerceIn(0, exoPlayer.duration)
+                                            val dur = exoPlayer.duration.coerceAtLeast(1L)
+                                            val seekDelta = (dx / viewWidth * dur * 0.5).toLong()
+                                            val newPos = (startPosition + seekDelta).coerceIn(0, dur)
                                             exoPlayer.seekTo(newPos)
                                             gestureText = "${if (seekDelta >= 0) "+" else ""}${seekDelta / 1000}s"
                                         }
