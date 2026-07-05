@@ -16,6 +16,7 @@
 
 package com.stark.miuix.ui.source
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,8 +31,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +43,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.ui.components.SourceCard
 import top.yukonga.miuix.kmp.basic.Card
@@ -74,6 +80,14 @@ fun SourceManageScreen(
     var showImport by remember { mutableStateOf(false) }
     var importMode by remember { mutableStateOf(ImportMode.JSON) }
 
+    // 导入成功后自动收起输入面板
+    androidx.compose.runtime.LaunchedEffect(uiState) {
+        if (uiState is SourceManageUiState.ImportSuccess) {
+            showImport = false
+            importText = ""
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = "视频源管理",
@@ -105,25 +119,29 @@ fun SourceManageScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp)
                 ) {
-                    // 导入模式切换
+                    // 导入模式切换 — 选中态用蓝色填充，未选中透明
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ImportMode.entries.forEach { mode ->
-                            Card(
+                            val isSelected = importMode == mode
+                            Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { importMode = mode },
-                                cornerRadius = 10.dp
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSelected) DesignTokens.brandBlue
+                                        else MiuixTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable { importMode = mode }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = mode.label,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
                                     style = MiuixTheme.textStyles.body2,
-                                    color = if (importMode == mode) MiuixTheme.colorScheme.primary
+                                    color = if (isSelected) Color.White
                                            else MiuixTheme.colorScheme.onSurface
                                 )
                             }
@@ -149,9 +167,15 @@ fun SourceManageScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Card(
+                    // 确认导入 — 实心主色调按钮
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                            .background(
+                                if (importText.isNotBlank()) DesignTokens.brandBlue
+                                else MiuixTheme.colorScheme.surfaceVariant
+                            )
                             .clickable {
                                 if (importText.isNotBlank()) {
                                     when (importMode) {
@@ -160,16 +184,15 @@ fun SourceManageScreen(
                                     }
                                     importText = ""
                                 }
-                            },
-                        cornerRadius = 12.dp
+                            }
+                            .padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "确认导入",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
                             style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.primary
+                            color = if (importText.isNotBlank()) Color.White
+                                   else MiuixTheme.colorScheme.outline
                         )
                     }
                 }

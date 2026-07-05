@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.util.UrlEncoder
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.ui.components.EmptyStateView
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoCard
@@ -100,17 +101,13 @@ fun CategoryScreen(
             }
             is CategoryUiState.Success -> {
                 if (state.videos.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "暂无内容",
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                        )
-                    }
+                    EmptyStateView(
+                        title = "暂无内容",
+                        message = "该分类下还没有视频"
+                    )
                 } else {
                     val gridState = rememberLazyGridState()
 
-                    // 滚动到底部触发加载更多
                     val shouldLoadMore by remember {
                         derivedStateOf {
                             val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -127,10 +124,10 @@ fun CategoryScreen(
 
                     LazyVerticalGrid(
                         state = gridState,
-                        columns = GridCells.Adaptive(minSize = 150.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(
                             items = state.videos,
@@ -146,7 +143,6 @@ fun CategoryScreen(
                             )
                         }
 
-                        // 底部加载指示器
                         if (state.isLoadingMore) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 Box(

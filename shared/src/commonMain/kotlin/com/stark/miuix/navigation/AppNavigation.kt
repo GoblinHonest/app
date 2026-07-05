@@ -32,6 +32,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -93,10 +96,11 @@ fun AppNavigation(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 导航内容区域（底部留空给悬浮底栏）
+        // 内容区底部 padding = 底栏图标高度 + 系统导航栏高度，与悬浮底栏实际高度完全一致
+        val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         Box(modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = if (isMainTab) DesignTokens.bottomBarHeight else 0.dp)
+            .padding(bottom = if (isMainTab) DesignTokens.bottomBarHeight + navBarBottom else 0.dp)
         ) {
         NavHost(
             navController = navController,
@@ -137,6 +141,7 @@ fun AppNavigation(
 
                 composable<Screen.Search> {
                     SearchScreen(
+                        onNavigateBack = { navController.popBackStack() },
                         onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
                             navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
                         }
@@ -244,7 +249,7 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.95f))
+            .background(MiuixTheme.colorScheme.surface)
             .navigationBarsPadding()
     ) {
         // 顶部分割线
@@ -252,7 +257,7 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
             modifier = Modifier
                 .fillMaxWidth()
                 .height(0.5.dp)
-                .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.15f))
+                .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.12f))
                 .align(Alignment.TopCenter)
         )
         Row(

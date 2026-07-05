@@ -35,6 +35,7 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.ui)
+                implementation(compose.material3)
                 implementation(compose.components.resources)
 
                 implementation(libs.miuix.ui)
@@ -46,7 +47,7 @@ kotlin {
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.serialization.json)
-                implementation(libs.kamel.image)
+                implementation(libs.coil.compose)
                 implementation(libs.androidx.navigation.compose)
 
                 implementation(libs.kotlinx.coroutines.core)
@@ -68,8 +69,11 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.lifecycle.viewmodel)
+                implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+                implementation(libs.coil.network.okhttp)
                 implementation("androidx.media3:media3-exoplayer:1.5.1")
                 implementation("androidx.media3:media3-ui:1.5.1")
+                implementation("androidx.media3:media3-session:1.5.1")
             }
         }
 
@@ -77,6 +81,7 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation(libs.ktor.client.cio)
+                implementation(libs.coil.network.ktor)
                 implementation(libs.kotlinx.coroutines.swing)
             }
         }
@@ -84,6 +89,7 @@ kotlin {
         val wasmJsMain by getting {
             dependencies {
                 implementation(libs.ktor.client.js)
+                implementation(libs.coil.network.ktor)
             }
         }
 

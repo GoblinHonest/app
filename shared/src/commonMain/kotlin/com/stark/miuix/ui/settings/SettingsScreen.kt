@@ -196,7 +196,7 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Miuix 视频聚合",
+                            text = "CineHub",
                             style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.onSurface
                         )

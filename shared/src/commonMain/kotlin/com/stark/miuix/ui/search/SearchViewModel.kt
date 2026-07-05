@@ -79,6 +79,10 @@ class SearchViewModel(
         videoRepository.clearHistory()
     }
 
+    fun removeHistoryItem(keyword: String) {
+        videoRepository.removeHistoryItem(keyword)
+    }
+
     private suspend fun executeSearch(keyword: String) {
         _uiState.value = SearchUiState.Searching
         val result = videoRepository.search(keyword)

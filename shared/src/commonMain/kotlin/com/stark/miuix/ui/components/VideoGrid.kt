@@ -23,14 +23,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.ui.theme.DesignTokens
 
-/**
- * 视频网格 — 自适应列数
- *
- * 手机竖屏 2 列，横屏/平板自动增列（最小列宽 160dp）。
- */
+/** 视频网格 — 固定 3 列，与首页/分类页保持一致 */
 @Composable
 fun VideoGrid(
     videos: List<SearchResult>,
@@ -38,14 +35,14 @@ fun VideoGrid(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = DesignTokens.gridMinWidth),
+        columns = GridCells.Fixed(3),
         modifier = modifier,
         contentPadding = PaddingValues(
             horizontal = DesignTokens.screenPadding,
             vertical = DesignTokens.spacingSm
         ),
-        horizontalArrangement = Arrangement.spacedBy(DesignTokens.cardGap),
-        verticalArrangement = Arrangement.spacedBy(DesignTokens.cardGap)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(
             items = videos,

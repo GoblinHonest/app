@@ -58,7 +58,7 @@ fun EpisodeList(
             ) {
                 Text(
                     text = episode.name.ifBlank { "第 ${index + 1} 集" },
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurface
                 )

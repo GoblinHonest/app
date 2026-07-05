@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,7 +71,11 @@ class HomeViewModel(
     fun refresh() {
         scope.launch {
             _isRefreshing.value = true
-            fetchData()
+            // 并行: 数据刷新 + 最小 800ms 展示时间（避免转圈一闪而过）
+            val dataJob = launch { fetchData() }
+            val minDelay = launch { delay(800) }
+            dataJob.join()
+            minDelay.join()
             _isRefreshing.value = false
         }
     }
@@ -93,10 +98,6 @@ class HomeViewModel(
                             val result = videoRepository.getCategoryVideos(source)
                             val videos = result.getOrDefault(emptyList()).take(PER_SOURCE_LIMIT)
                             AppLogger.d("Home", "源[${source.sourceName}] 加载 ${videos.size} 条")
-                            // 打印每条视频的封面 URL，方便排查图片不显示问题
-                            videos.forEachIndexed { i, v ->
-                                AppLogger.d("Cover", "[$i] title=${v.title.take(10)} cover=${v.cover.take(80)}")
-                            }
                             videos
                         } catch (e: Exception) {
                             AppLogger.e("Home", "源[${source.sourceName}] 加载失败", e)

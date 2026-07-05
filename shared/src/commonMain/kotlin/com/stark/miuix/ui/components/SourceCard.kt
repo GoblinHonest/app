@@ -114,7 +114,9 @@ fun SourceCard(
                         text = "删除",
                         style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.error,
-                        modifier = Modifier.clickable { showDeleteConfirm = true }
+                        modifier = Modifier
+                            .clickable { showDeleteConfirm = true }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
             }

@@ -16,6 +16,7 @@
 
 package com.stark.miuix.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,24 +24,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.Card
+import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 通用空状态组件
- *
- * 在列表为空、加载失败等场景下展示友好提示，
- * 可选配重试按钮引导用户操作。
- *
- * @param title 主标题
- * @param message 副标题/描述
- * @param actionText 操作按钮文字（为空不展示）
- * @param onAction 操作回调
+ * 通用空状态组件 — 主色调实心按钮（符合 44dp 触控规范）
  */
 @Composable
 fun EmptyStateView(
@@ -53,7 +50,10 @@ fun EmptyStateView(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
             Text(
                 text = title,
                 style = MiuixTheme.textStyles.headline1,
@@ -63,21 +63,25 @@ fun EmptyStateView(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = message,
-                    style = MiuixTheme.textStyles.footnote1,
+                    style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
             }
             if (actionText.isNotBlank()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.clickable(onClick = onAction),
-                    cornerRadius = 12.dp
+                Spacer(modifier = Modifier.height(24.dp))
+                Box(
+                    modifier = Modifier
+                        .widthIn(min = 120.dp)
+                        .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                        .background(DesignTokens.brandBlue)
+                        .clickable(onClick = onAction)
+                        .padding(horizontal = 28.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = actionText,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.primary
+                        style = MiuixTheme.textStyles.body2,
+                        color = Color.White
                     )
                 }
             }
@@ -85,12 +89,7 @@ fun EmptyStateView(
     }
 }
 
-/**
- * 通用错误状态组件
- *
- * @param message 错误信息
- * @param onRetry 重试回调
- */
+/** 通用错误状态组件 */
 @Composable
 fun ErrorStateView(
     message: String,

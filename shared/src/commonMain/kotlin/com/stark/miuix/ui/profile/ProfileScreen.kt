@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import com.stark.miuix.ui.icons.IconBack
 import com.stark.miuix.ui.icons.IconDownload
 import com.stark.miuix.ui.icons.IconHistory
 import com.stark.miuix.ui.icons.IconLike
@@ -51,10 +52,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import androidx.compose.ui.layout.ContentScale
 import com.stark.miuix.data.model.Favorite
 import com.stark.miuix.data.model.WatchHistory
 import com.stark.miuix.data.repository.UserDataRepository
@@ -84,42 +91,137 @@ fun ProfileScreen(
 ) {
     val watchHistory by userDataRepository.watchHistory.collectAsState()
     val favorites by userDataRepository.favorites.collectAsState()
+    var showFavorites by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .windowInsetsPadding(WindowInsets.statusBars),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 88.dp)
     ) {
-        // 1. 用户信息
+        // 1. 用户信息（内部 UserHeader 处理 statusBarsPadding）
         item {
             UserHeader()
         }
 
         // 2. 蓝色功能 Banner
         item {
-            BannerPromo()
+            BannerPromo(onNavigateToSourceManage = onNavigateToSourceManage)
         }
 
         // 3. 四格功能
         item {
             QuickGrid(
                 favoriteCount = favorites.size,
-                historyCount = watchHistory.size
+                historyCount = watchHistory.size,
+                onFavoriteClick = { showFavorites = !showFavorites },
+                onHistoryClick = { /* 历史已在下方显示 */ }
             )
         }
 
-        // 4. 继续观看（最近一条）
+        // 3.5 收藏展开列表
+        if (showFavorites && favorites.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = DesignTokens.screenPadding)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = DesignTokens.spacingSm)
+                    ) {
+                        Text("我的收藏", style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Text("收起 ∧", style = MiuixTheme.textStyles.footnote1, color = DesignTokens.brandBlue,
+                            modifier = Modifier.clickable { showFavorites = false }.padding(8.dp))
+                    }
+                    favorites.forEach { fav ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = DesignTokens.spacingXs)
+                                .clickable { onNavigateToDetail(fav.sourceName, fav.detailUrl, fav.title, fav.cover) },
+                            cornerRadius = DesignTokens.radiusMd
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(DesignTokens.spacingMd),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 封面
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 72.dp, height = 52.dp)
+                                        .clip(RoundedCornerShape(DesignTokens.radiusSm))
+                                        .background(MiuixTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    if (fav.cover.startsWith("http")) {
+                                        val ctx = LocalPlatformContext.current
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(ctx).data(fav.cover).build(),
+                                            contentDescription = fav.title,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
+                                Text(
+                                    text = fav.title,
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = MiuixTheme.colorScheme.onSurface,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                // 取消收藏按钮 — 最小 44dp 触控面积
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clickable { userDataRepository.removeFavorite(fav.videoId) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.foundation.Image(
+                                        painter = rememberVectorPainter(IconStar),
+                                        contentDescription = "取消收藏",
+                                        colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (showFavorites && favorites.isEmpty()) {
+            item {
+                Text(
+                    "暂无收藏",
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.outline,
+                    modifier = Modifier.padding(
+                        horizontal = DesignTokens.screenPadding,
+                        vertical = DesignTokens.spacingMd
+                    )
+                )
+            }
+        }
+
+        // 4. 继续观看（最近 3 条）
         if (watchHistory.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(DesignTokens.spacingMd))
-                ContinueWatching(
-                    item = watchHistory.first(),
-                    onClick = { h ->
-                        onNavigateToDetail(h.sourceName, h.detailUrl, h.title, h.cover)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = DesignTokens.screenPadding)
+                ) {
+                    Text(
+                        text = "继续观看",
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = DesignTokens.spacingSm)
+                    )
+                    watchHistory.take(3).forEach { h ->
+                        ContinueWatching(
+                            item = h,
+                            onClick = { item -> onNavigateToDetail(item.sourceName, item.detailUrl, item.title, item.cover) }
+                        )
+                        Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
                     }
-                )
+                }
             }
         }
 
@@ -143,62 +245,84 @@ fun ProfileScreen(
     }
 }
 
-/** 用户信息区 — 白色背景卡片 */
+/** 用户信息区 — 渐变背景头部卡片 */
 @Composable
 private fun UserHeader() {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface)
-            .padding(
-                horizontal = DesignTokens.screenPadding,
-                vertical = DesignTokens.spacingXl
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 头像
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(
-                        listOf(Color(0xFF74B9FF), Color(0xFF0984E3))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        DesignTokens.brandBlue.copy(alpha = 0.12f),
+                        MiuixTheme.colorScheme.surface
                     )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "V",
-                style = MiuixTheme.textStyles.headline1,
-                color = Color.White
+                )
+            )
+            .statusBarsPadding()  // 沉浸式：渐变延伸到状态栏，内容从状态栏底部开始
+            .padding(horizontal = DesignTokens.screenPadding)
+            .padding(top = DesignTokens.spacingMd, bottom = DesignTokens.spacingMd)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 头像 — 渐变圆形
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF74B9FF), Color(0xFF0984E3), Color(0xFF6C63FF))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "V",
+                    style = MiuixTheme.textStyles.headline1,
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "视频爱好者",
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(DesignTokens.brandBlue.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "动漫控",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = DesignTokens.brandBlue
+                        )
+                    }
+                }
+            }
+            androidx.compose.foundation.Image(
+                painter = rememberVectorPainter(IconBack),
+                contentDescription = "查看资料",
+                colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.outline),
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer(rotationZ = 180f)
             )
         }
-        Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "视频爱好者",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "普通用户",
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.outline
-            )
-        }
-        Text(
-            text = ">",
-            style = MiuixTheme.textStyles.body1,
-            color = MiuixTheme.colorScheme.outline
-        )
     }
 }
 
 /** 蓝色渐变 Banner 条 */
 @Composable
-private fun BannerPromo() {
+private fun BannerPromo(onNavigateToSourceManage: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,7 +330,7 @@ private fun BannerPromo() {
             .clip(RoundedCornerShape(DesignTokens.radiusMd))
             .background(
                 Brush.horizontalGradient(
-                    listOf(Color(0xFF74B9FF).copy(alpha = 0.3f), Color(0xFF0984E3).copy(alpha = 0.25f))
+                    listOf(DesignTokens.brandBlue.copy(alpha = 0.18f), Color(0xFF6C63FF).copy(alpha = 0.12f))
                 )
             )
             .padding(horizontal = DesignTokens.spacingLg, vertical = DesignTokens.spacingMd)
@@ -215,20 +339,27 @@ private fun BannerPromo() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "多源聚合，畅享海量视频内容",
-                style = MiuixTheme.textStyles.body2,
-                color = DesignTokens.brandBlue,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "CineHub · 多源聚合",
+                    style = MiuixTheme.textStyles.body2,
+                    color = DesignTokens.brandBlue
+                )
+                Text(
+                    text = "导入源，解锁海量视频内容",
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = DesignTokens.brandBlue.copy(alpha = 0.7f)
+                )
+            }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(DesignTokens.radiusPill))
                     .background(DesignTokens.brandBlue)
-                    .padding(horizontal = 14.dp, vertical = 5.dp)
+                    .clickable(onClick = onNavigateToSourceManage)
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "导入源",
+                    text = "管理源",
                     style = MiuixTheme.textStyles.footnote1,
                     color = Color.White
                 )
@@ -239,13 +370,19 @@ private fun BannerPromo() {
 
 /** 四格功能图标（对标设计图 — 线条图标+文字） */
 @Composable
-private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
+private fun QuickGrid(
+    favoriteCount: Int,
+    historyCount: Int,
+    onFavoriteClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {}
+) {
     // 逆向图标: star(收藏) / time(历史) / download(缓存) / notice(消息)
+    data class QuickItem(val icon: ImageVector, val label: String, val badge: String, val onClick: () -> Unit)
     val items = listOf(
-        Triple(IconStar, "我的收藏", if (favoriteCount > 0) "$favoriteCount" else ""),
-        Triple(IconHistory, "历史记录", if (historyCount > 0) "$historyCount" else ""),
-        Triple(IconDownload, "离线缓存", ""),
-        Triple(IconNotice, "我的消息", "")
+        QuickItem(IconStar, "我的收藏", if (favoriteCount > 0) "$favoriteCount" else "", onFavoriteClick),
+        QuickItem(IconHistory, "历史记录", if (historyCount > 0) "$historyCount" else "", onHistoryClick),
+        QuickItem(IconDownload, "离线缓存", "", {}),
+        QuickItem(IconNotice, "我的消息", "", {})
     )
     Row(
         modifier = Modifier
@@ -253,22 +390,25 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
             .padding(top = DesignTokens.spacingXl, bottom = DesignTokens.spacingSm),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        items.forEach { (icon, label, badge) ->
+        items.forEach { item ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(72.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = item.onClick)
+                    .padding(vertical = DesignTokens.spacingSm)
             ) {
                 Box(contentAlignment = Alignment.TopEnd) {
                     // SVG 路径图标（对标逆向 APK 图标集）
                     androidx.compose.foundation.Image(
-                        painter = rememberVectorPainter(icon),
-                        contentDescription = label,
+                        painter = rememberVectorPainter(item.icon),
+                        contentDescription = item.label,
                         colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
                         modifier = Modifier
                             .size(26.dp)
                             .padding(2.dp)
                     )
-                    if (badge.isNotBlank()) {
+                    if (item.badge.isNotBlank()) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
@@ -276,7 +416,7 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
                                 .padding(horizontal = 4.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                text = badge,
+                                text = item.badge,
                                 style = MiuixTheme.textStyles.footnote2,
                                 color = Color.White
                             )
@@ -285,7 +425,7 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
                 }
                 Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
                 Text(
-                    text = label,
+                    text = item.label,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurface
                 )
@@ -293,8 +433,6 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
         }
     }
 }
-
-private data class QuickItem(val icon: ImageVector, val label: String, val badge: String)
 
 /** 继续追番卡片 — 对标设计图的「继续追番」条目 */
 @Composable
@@ -312,19 +450,30 @@ private fun ContinueWatching(item: WatchHistory, onClick: (WatchHistory) -> Unit
                 .padding(DesignTokens.spacingMd),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 封面缩略图
+            // 封面缩略图 — 使用 AsyncImage 显示真实封面
+            val coverUrl = item.cover
             Box(
                 modifier = Modifier
-                    .size(width = 56.dp, height = 40.dp)
+                    .size(width = 72.dp, height = 52.dp)
                     .clip(RoundedCornerShape(DesignTokens.radiusSm))
                     .background(MiuixTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = item.title.take(1),
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.primary
-                )
+                if (coverUrl.isNotBlank() && (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))) {
+                    val ctx = LocalPlatformContext.current
+                    AsyncImage(
+                        model = ImageRequest.Builder(ctx).data(coverUrl).build(),
+                        contentDescription = item.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = item.title.take(1),
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.primary
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
             Column(modifier = Modifier.weight(1f)) {
@@ -433,8 +582,9 @@ private fun FeatureCard(
                 painter = rememberVectorPainter(icon),
                 contentDescription = title,
                 colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
-                modifier = Modifier.size(20.dp).width(28.dp)
+                modifier = Modifier.size(24.dp)
             )
+            Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
             Column {
                 Text(
                     text = title,
@@ -465,7 +615,7 @@ private fun MenuList(
         listOf(
             MenuItem(IconStar, "我的收藏", "${favorites.size} 个", {}),
             MenuItem(IconDownload, "检测更新", "当前最新版本", {}),
-            MenuItem(IconShare, "关于", "Miuix 视频聚合 v1.0.0", {})
+            MenuItem(IconShare, "关于", "CineHub v1.0.0", {})
         )
     )
 
@@ -503,10 +653,9 @@ private fun MenuList(
                             painter = rememberVectorPainter(item.icon),
                             contentDescription = item.title,
                             colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
-                            modifier = Modifier
-                                .size(22.dp)
-                                .width(32.dp)
+                            modifier = Modifier.size(22.dp)
                         )
+                        Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = item.title,
@@ -521,10 +670,12 @@ private fun MenuList(
                                 )
                             }
                         }
-                        Text(
-                            text = ">",
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.outline
+                        // chevron 箭头 — SVG IconBack 旋转 180°
+                        androidx.compose.foundation.Image(
+                            painter = rememberVectorPainter(IconBack),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.outline),
+                            modifier = Modifier.size(16.dp).graphicsLayer(rotationZ = 180f)
                         )
                     }
                 }

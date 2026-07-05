@@ -17,9 +17,12 @@
 package com.stark.miuix.ui.search
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -30,8 +33,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,11 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.di.AppContainer
+import com.stark.miuix.ui.components.EmptyStateView
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoGrid
 import com.stark.miuix.ui.theme.DesignTokens
+import com.stark.miuix.ui.icons.IconBack
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -62,7 +66,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
-    onNavigateToDetail: (String, String, String, String) -> Unit
+    onNavigateToDetail: (String, String, String, String) -> Unit,
+    onNavigateBack: () -> Unit = {}
 ) {
     val viewModel = AppContainer.searchViewModel
     val uiState by viewModel.uiState.collectAsState()
@@ -75,11 +80,24 @@ fun SearchScreen(
     }
     var query by remember { mutableStateOf(initialQuery) }
 
-    Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
-        // 搜索栏
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 搜索栏 — 与首页一样的顶部渐变 + statusBarsPadding
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            com.stark.miuix.ui.theme.DesignTokens.brandBlue.copy(alpha = 0.10f),
+                            androidx.compose.ui.graphics.Color.Transparent
+                        )
+                    )
+                )
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(
                     horizontal = DesignTokens.screenPadding,
                     vertical = DesignTokens.spacingMd
@@ -87,6 +105,14 @@ fun SearchScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
         ) {
+            IconButton(onClick = onNavigateBack) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconBack),
+                    contentDescription = "返回",
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+                    modifier = androidx.compose.ui.Modifier.padding(4.dp)
+                )
+            }
             TextField(
                 value = query,
                 onValueChange = {
@@ -94,7 +120,7 @@ fun SearchScreen(
                     viewModel.onQueryChanged(it)
                 },
                 modifier = Modifier.weight(1f),
-                label = "搜索视频、演员、导演..."
+                label = "搜索动漫、番剧..."
             )
             Box(
                 modifier = Modifier
@@ -114,6 +140,7 @@ fun SearchScreen(
                 )
             }
         }
+        } // Box gradient
 
         when (val state = uiState) {
             is SearchUiState.Idle -> {
@@ -146,7 +173,7 @@ fun SearchScreen(
                             verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
                         ) {
                             history.forEach { keyword ->
-                                Box(
+                                Row(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(DesignTokens.radiusXl))
                                         .background(MiuixTheme.colorScheme.surfaceVariant)
@@ -154,13 +181,27 @@ fun SearchScreen(
                                             query = keyword
                                             viewModel.search(keyword)
                                         }
-                                        .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
+                                        .padding(start = DesignTokens.spacingMd, end = 4.dp, top = DesignTokens.spacingSm, bottom = DesignTokens.spacingSm),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = keyword,
                                         style = MiuixTheme.textStyles.footnote1,
                                         color = MiuixTheme.colorScheme.onSurface
                                     )
+                                    // × 删除单条历史
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clickable { viewModel.removeHistoryItem(keyword) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "×",
+                                            style = MiuixTheme.textStyles.footnote1,
+                                            color = MiuixTheme.colorScheme.outline
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -174,53 +215,12 @@ fun SearchScreen(
 
             is SearchUiState.Success -> {
                 if (state.results.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(horizontal = 32.dp)
-                        ) {
-                            Text(
-                                text = "未找到相关内容",
-                                style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.outline
-                            )
-                            Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-                            Text(
-                                text = "试试换个关键词",
-                                style = MiuixTheme.textStyles.footnote1,
-                                color = MiuixTheme.colorScheme.outline
-                            )
-                            if (history.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
-                                    verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
-                                ) {
-                                    history.take(5).forEach { keyword ->
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                                                .background(MiuixTheme.colorScheme.surfaceVariant)
-                                                .clickable {
-                                                    query = keyword
-                                                    viewModel.search(keyword)
-                                                }
-                                                .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
-                                        ) {
-                                            Text(
-                                                text = keyword,
-                                                style = MiuixTheme.textStyles.footnote1,
-                                                color = MiuixTheme.colorScheme.primary
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    EmptyStateView(
+                        title = "未找到相关内容",
+                        message = "试试换个关键词",
+                        actionText = if (history.isNotEmpty()) "用「${history.first()}」重新搜" else "",
+                        onAction = { if (history.isNotEmpty()) { query = history.first(); viewModel.search(history.first()) } }
+                    )
                 } else {
                     Column(modifier = Modifier.fillMaxSize()) {
                         val sourceCount = state.results.map { it.sourceName }.distinct().size
@@ -240,7 +240,7 @@ fun SearchScreen(
                                     video.sourceName, video.url, video.title, video.cover
                                 )
                             },
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }

@@ -58,8 +58,13 @@ class HtmlParser : RuleParser {
                 val parts = rule.split("@attr:")
                 val selector = parts[0].trim()
                 val attrName = parts[1].trim()
-                if (selector.isBlank()) extractAttribute(content, attrName)
-                else selectByCss(content, selector).firstOrNull()?.let { extractAttribute(it, attrName) } ?: ""
+                if (selector.isBlank()) {
+                    extractAttribute(content, attrName)
+                } else {
+                    val found = selectByCss(content, selector).firstOrNull()?.let { extractAttribute(it, attrName) } ?: ""
+                    // 若 CSS 链式选择失败（如 void 元素残留问题），直接在原内容里搜属性
+                    if (found.isNotBlank()) found else extractAttribute(content, attrName)
+                }
             }
             rule == "@src" -> extractAttribute(content, "src")
             rule == "@href" -> extractAttribute(content, "href")
@@ -129,9 +134,16 @@ class HtmlParser : RuleParser {
     /**
      * 通过标签栈找到匹配的闭合标签位置
      *
-     * 处理嵌套同名标签的情况（如 `<div><div>...</div></div>`）。
+     * 处理嵌套同名标签（如 `<div><div>...</div></div>`）和
+     * void 元素（`<img>` / `<br>` 等无闭合标签的标签）。
      */
     private fun findClosingTag(content: String, tagName: String, startIdx: Int): Int {
+        // void 元素无闭合标签，直接返回开标签的结束位置
+        if (tagName.lowercase() in VOID_ELEMENTS) {
+            val gt = content.indexOf('>', startIdx)
+            return if (gt >= 0) gt + 1 else -1
+        }
+
         val openPattern = """<${Regex.escape(tagName)}[\s>/]""".toRegex(RegexOption.IGNORE_CASE)
         val closePattern = """</${Regex.escape(tagName)}\s*>""".toRegex(RegexOption.IGNORE_CASE)
 
@@ -145,7 +157,6 @@ class HtmlParser : RuleParser {
             if (nextClose == null) return -1
 
             if (nextOpen != null && nextOpen.range.first < nextClose.range.first) {
-                // 遇到同名的嵌套开标签
                 val selfClosing = content.substring(nextOpen.range.first).let {
                     it.indexOf('>').let { end -> end >= 0 && it[end - 1] == '/' }
                 }
@@ -253,5 +264,9 @@ class HtmlParser : RuleParser {
     companion object {
         private val DESCENDANT_SPLIT_REGEX = """\s+""".toRegex()
         private val WHITESPACE_REGEX = """\s+""".toRegex()
+        private val VOID_ELEMENTS = setOf(
+            "img", "br", "hr", "input", "meta", "link",
+            "area", "base", "col", "embed", "param", "source", "track", "wbr"
+        )
     }
 }

@@ -12,6 +12,7 @@ androidx-lifecycle = "2.10.0"
 androidx-core = "1.15.0"
 androidx-media3 = "1.5.1"
 kamel = "1.0.6"
+coil = "3.2.0"
 
 [libraries]
 # Miuix
@@ -33,6 +34,11 @@ ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "k
 
 # Kamel (image loading)
 kamel-image = { module = "media.kamel:kamel-image", version.ref = "kamel" }
+
+# Coil 3 (KMP image loading — replaces Kamel on Android)
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
 # Navigation
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version = "2.9.0" }

@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +59,9 @@ import com.stark.miuix.ui.icons.IconNext
 import com.stark.miuix.ui.icons.IconPause
 import com.stark.miuix.ui.icons.IconPlay
 import kotlinx.coroutines.delay
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.stark.miuix.util.VideoPlayerState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.abs
@@ -93,6 +99,13 @@ actual fun VideoPlayer(
         }
     }
 
+    // HyperOS L1 适配：MediaSession — 锁屏/通知栏/蓝牙耳机播控
+    val mediaSession = remember(context, exoPlayer) {
+        androidx.media3.session.MediaSession.Builder(context, exoPlayer)
+            .setId("cinehub_player")
+            .build()
+    }
+
     var showControls by remember { mutableStateOf(true) }
     var isPlaying by remember { mutableStateOf(true) }
     var currentPosition by remember { mutableLongStateOf(0L) }
@@ -110,18 +123,36 @@ actual fun VideoPlayer(
             c.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         onDispose {
+            VideoPlayerState.isPlaying = false  // 退出播放，禁止 PiP 触发
+            mediaSession.release()
             exoPlayer.release()
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             activity?.window?.decorView?.windowInsetsController?.show(WindowInsets.Type.systemBars())
         }
     }
 
+    // HyperOS 多窗口适配：监听 onStop/onStart（不在 onPause 停止播放）
+    // 文档要求: 多窗口失去焦点时不应停止播放，只在 onStop 时暂停
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> exoPlayer.pause()
+                Lifecycle.Event.ON_START -> if (isPlaying) exoPlayer.play()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     // 定时刷新进度
-    LaunchedEffect(isPlaying) {
+    LaunchedEffect(Unit) {
         while (true) {
             currentPosition = exoPlayer.currentPosition
             duration = exoPlayer.duration.coerceAtLeast(1L)
             isPlaying = exoPlayer.isPlaying
+            VideoPlayerState.isPlaying = exoPlayer.isPlaying  // 同步全局 PiP 状态
             delay(500)
         }
     }
@@ -244,9 +275,9 @@ actual fun VideoPlayer(
             }
         }
 
-        // 自定义控制层 — 对标优酷全屏播放器设计图
+        // 自定义控制层 — 锁屏时仅显示解锁按钮
         AnimatedVisibility(
-            visible = showControls,
+            visible = showControls && !isLocked,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -279,26 +310,7 @@ actual fun VideoPlayer(
                         modifier = Modifier.weight(1f),
                         maxLines = 1
                     )
-                    // 倍速 + 选集 文字按钮（保持文字，逆向APK也是文字label）
-                    listOf("倍速", "选集").forEach { label ->
-                        Text(
-                            text = if (label == "倍速") "${playbackSpeed}x" else label,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                .clickable {
-                                    if (label == "倍速") {
-                                        val next = when (playbackSpeed) {
-                                            1f -> 1.5f; 1.5f -> 2f; 2f -> 3f; else -> 1f
-                                        }
-                                        playbackSpeed = next
-                                        exoPlayer.setPlaybackSpeed(next)
-                                    }
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                    // 倍速只在底部控制栏显示，顶部仅保留标题，避免重复
                 }
 
                 // 右侧：锁屏按钮（设计图右侧圆形按钮）
@@ -308,16 +320,17 @@ actual fun VideoPlayer(
                         .padding(end = 16.dp)
                         .size(40.dp)
                         .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(50))
-                        .clickable { /* 锁屏功能 */ },
+                        .clickable { isLocked = !isLocked },
                     contentAlignment = Alignment.Center
                 ) {
-                    // lock/unlock SVG (逆向: lock.svg / unlock.svg)
+                    // lock/unlock SVG — 修复 Bug：两分支相同
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
-                            if (isLocked) IconLock else IconLock
+                            if (isLocked) IconLock else com.stark.miuix.ui.icons.IconFloating
                         ),
-                        contentDescription = "锁屏",
-                        modifier = Modifier.size(20.dp)
+                        contentDescription = if (isLocked) "解锁" else "锁屏",
+                        modifier = Modifier.size(20.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
                     )
                 }
 
@@ -365,20 +378,28 @@ actual fun VideoPlayer(
                             style = MiuixTheme.textStyles.footnote1,
                             color = Color.White.copy(alpha = 0.9f)
                         )
-                        // 进度条（带拖动圆点）
-                        Box(
+                        // 进度条 — BoxWithConstraints 获取实际宽度，点击跳进度
+                        BoxWithConstraints(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(20.dp),
+                                .height(20.dp)
+                                .pointerInput(duration) {
+                                    // 点击进度条精确跳转
+                                    detectTapGestures { offset ->
+                                        val fraction = (offset.x / size.width).coerceIn(0f, 1f)
+                                        exoPlayer.seekTo((fraction * duration).toLong())
+                                    }
+                                },
                             contentAlignment = Alignment.Center
                         ) {
+                            val barWidth = maxWidth
+                            val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(3.dp)
                                     .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(1.5.dp))
                             )
-                            val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(progress)
@@ -386,11 +407,11 @@ actual fun VideoPlayer(
                                     .background(Color.White, RoundedCornerShape(1.5.dp))
                                     .align(Alignment.CenterStart)
                             )
-                            // 进度点
+                            // 进度点 — 准确定位：progress * 实际宽度
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.CenterStart)
-                                    .padding(start = (progress * 100).coerceIn(0f, 100f).dp.coerceAtMost(2000.dp))
+                                    .padding(start = (barWidth * progress).coerceAtMost(barWidth - 6.dp))
                                     .size(12.dp)
                                     .background(Color.White, RoundedCornerShape(50))
                             )
@@ -413,7 +434,7 @@ actual fun VideoPlayer(
                                 if (isPlaying) IconPause else IconPlay
                             ),
                             contentDescription = if (isPlaying) "暂停" else "播放",
-                            modifier = Modifier.size(20.dp).clickable {
+                            modifier = Modifier.size(32.dp).clickable {
                                 if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                             }.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
@@ -421,7 +442,7 @@ actual fun VideoPlayer(
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconNext),
                             contentDescription = "下一集",
-                            modifier = Modifier.size(20.dp).padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.size(32.dp).padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                         // 弹幕 SVG (逆向: dm_open.svg / dm_close.svg)
                         androidx.compose.foundation.Image(
@@ -433,20 +454,20 @@ actual fun VideoPlayer(
                                 if (dmEnabled) Color(0xFF3D7BF9) else Color.White.copy(alpha = 0.5f)
                             ),
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(32.dp)
                                 .background(
                                     if (dmEnabled) Color(0xFF3D7BF9).copy(alpha = 0.2f) else Color.Transparent,
                                     RoundedCornerShape(4.dp)
                                 )
                                 .clickable { dmEnabled = !dmEnabled }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(4.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         // HD SVG (逆向: Anime4K 超分辨率)
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconHD),
                             contentDescription = "超分",
-                            modifier = Modifier.size(20.dp).padding(horizontal = 5.dp)
+                            modifier = Modifier.size(28.dp).padding(horizontal = 6.dp)
                         )
                         // 倍速文字（保持文字，逆向APK也用文字标签）
                         Text(
@@ -467,13 +488,43 @@ actual fun VideoPlayer(
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFloating),
                             contentDescription = "悬浮",
-                            modifier = Modifier.size(20.dp).padding(horizontal = 5.dp)
+                            modifier = Modifier.size(28.dp).padding(horizontal = 6.dp)
                         )
                         // 全屏 SVG (逆向: full.svg)
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFullscreen),
                             contentDescription = "全屏",
-                            modifier = Modifier.size(20.dp).padding(start = 5.dp)
+                            modifier = Modifier.size(28.dp).padding(start = 6.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // 锁屏状态：只显示解锁按钮，点击解锁
+        if (isLocked) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                AnimatedVisibility(
+                    visible = showControls,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .size(44.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                            .clickable { isLocked = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconLock),
+                            contentDescription = "解锁",
+                            modifier = Modifier.size(22.dp),
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
                         )
                     }
                 }

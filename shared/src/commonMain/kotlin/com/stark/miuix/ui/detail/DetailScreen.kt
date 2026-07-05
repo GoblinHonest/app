@@ -18,8 +18,8 @@ package com.stark.miuix.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,8 +31,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,7 +40,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,14 +60,14 @@ import com.stark.miuix.ui.icons.IconRank
 import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.icons.IconStar
 import com.stark.miuix.ui.icons.IconChat
-import com.stark.miuix.ui.components.EpisodeList
+import com.stark.miuix.ui.player.InlineVideoPlayer
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.theme.DesignTokens
-import com.stark.miuix.util.ClipboardUtils
 import com.stark.miuix.util.UrlEncoder
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import top.yukonga.miuix.kmp.basic.Card
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.ColorFilter
@@ -105,8 +104,11 @@ fun DetailScreen(
     val decodedCover = UrlEncoder.decode(initialCoverUrl)
     val videoId = decodedUrl.hashCode().toString()
     var isFavorite by remember { mutableStateOf(userDataRepository.isFavorite(videoId)) }
-    val copyToClipboard = ClipboardUtils.rememberCopyAction()
+    val shareAction = com.stark.miuix.util.rememberShareAction()
     var descExpanded by remember { mutableStateOf(false) }
+    var episodesExpanded by remember { mutableStateOf(false) }
+    var selectedEpisodeIndex by remember { mutableStateOf(-1) }
+    var playingEpisodeUrl by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(detailUrl) {
         viewModel.loadDetail(sourceName, decodedUrl)
@@ -122,26 +124,9 @@ fun DetailScreen(
             },
             actions = {
                 IconButton(onClick = {
-                    copyToClipboard("$initialTitle\n$detailUrl")
+                    shareAction(initialTitle, "$initialTitle\n$detailUrl")
                 }) {
                     Text("分享", style = MiuixTheme.textStyles.body2)
-                }
-                IconButton(onClick = {
-                    val fav = Favorite(
-                        videoId = videoId,
-                        title = initialTitle,
-                        cover = initialCoverUrl,
-                        sourceName = sourceName,
-                        detailUrl = decodedUrl
-                    )
-                    isFavorite = userDataRepository.toggleFavorite(fav)
-                }) {
-                    Text(
-                        text = if (isFavorite) "已收藏" else "收藏",
-                        style = MiuixTheme.textStyles.body2,
-                        color = if (isFavorite) MiuixTheme.colorScheme.primary
-                               else MiuixTheme.colorScheme.onSurface
-                    )
                 }
             }
         )
@@ -168,46 +153,52 @@ fun DetailScreen(
                 }
 
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    // 封面 + 渐变蒙版
+                    // 顶部：内嵌播放器 OR 封面图
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(240.dp)
-                                .background(Color(0xFF1A1A1A))
-                        ) {
-                            if (video.cover.isNotBlank() && (video.cover.startsWith("http://") || video.cover.startsWith("https://"))) {
-                                KamelImage(
-                                    resource = { asyncPainterResource(video.cover) },
-                                    contentDescription = video.title,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop,
-                                    onFailure = { }
-                                )
-                            }
+                        val currentUrl = playingEpisodeUrl
+                        if (currentUrl != null) {
+                            // 内嵌播放器 — 点击全屏按钮才跳转 PlayerScreen
+                            InlineVideoPlayer(
+                                url = currentUrl,
+                                title = video.title,
+                                modifier = Modifier.fillMaxWidth(),
+                                onRequestFullscreen = {
+                                    onNavigateToPlayer(state.currentSource, currentUrl, video.title)
+                                }
+                            )
+                        } else {
+                            // 封面图 + 渐变蒙版
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                Color.Black.copy(alpha = 0.6f)
-                                            ),
-                                            startY = 100f
-                                        )
+                                    .fillMaxWidth()
+                                    .height(220.dp)
+                                    .background(DesignTokens.videoBackground)
+                            ) {
+                                if (video.cover.isNotBlank() && (video.cover.startsWith("http://") || video.cover.startsWith("https://"))) {
+                                    val ctx = LocalPlatformContext.current
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(ctx).data(video.cover).build(),
+                                        contentDescription = video.title,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
                                     )
-                            )
-                            Text(
-                                text = video.title,
-                                style = MiuixTheme.textStyles.headline1,
-                                color = Color.White,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(16.dp)
-                            )
+                                }
+                                Box(
+                                    modifier = Modifier.fillMaxSize()
+                                        .background(Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                                            startY = 80f
+                                        ))
+                                )
+                                Text(
+                                    text = video.title,
+                                    style = MiuixTheme.textStyles.headline1,
+                                    color = Color.White,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
+                                )
+                            }
                         }
                     }
 
@@ -285,7 +276,7 @@ fun DetailScreen(
                         }
                     }
 
-                    // 选集区（横滑按钮，对标设计图）
+                    // 选集区 — FlowRow 网格，支持展开/收起（移除横滑）
                     if (video.episodes.isNotEmpty()) {
                         item {
                             Column(
@@ -293,6 +284,7 @@ fun DetailScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm)
                             ) {
+                                // 标题行
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.fillMaxWidth()
@@ -303,45 +295,46 @@ fun DetailScreen(
                                         color = MiuixTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f)
                                     )
+                                    val displayCount = if (episodesExpanded) video.episodes.size else minOf(video.episodes.size, 20)
                                     Text(
-                                        text = "全 ${video.episodes.size} 集",
+                                        text = if (episodesExpanded) "收起 ∧" else "全 ${video.episodes.size} 集 ∨",
                                         style = MiuixTheme.textStyles.footnote1,
-                                        color = MiuixTheme.colorScheme.outline
+                                        color = DesignTokens.brandBlue,
+                                        modifier = Modifier.clickable { episodesExpanded = !episodesExpanded }
+                                            .padding(8.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-                                // 横滑选集按钮
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+                                // FlowRow 集数网格
+                                @OptIn(ExperimentalLayoutApi::class)
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
+                                    verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
                                 ) {
-                                    video.episodes.forEachIndexed { index, episode ->
-                                        val isFirst = index == 0
+                                    val displayEpisodes = if (episodesExpanded) video.episodes
+                                                          else video.episodes.take(20)
+                                    displayEpisodes.forEachIndexed { index, episode ->
+                                        val isSelected = index == selectedEpisodeIndex
                                         Box(
                                             modifier = Modifier
+                                                .widthIn(min = 52.dp)
                                                 .clip(RoundedCornerShape(DesignTokens.radiusSm))
                                                 .background(
-                                                    if (isFirst) DesignTokens.brandBlue.copy(alpha = 0.12f)
+                                                    if (isSelected) DesignTokens.brandBlue
                                                     else MiuixTheme.colorScheme.surfaceVariant
                                                 )
-                                                .run {
-                                                    if (isFirst) border(
-                                                        1.dp,
-                                                        DesignTokens.brandBlue,
-                                                        RoundedCornerShape(DesignTokens.radiusSm)
-                                                    ) else this
-                                                }
                                                 .clickable {
-                                                    onNavigateToPlayer(state.currentSource, episode.url, video.title)
+                                                    selectedEpisodeIndex = index
+                                                    playingEpisodeUrl = episode.url  // 触发内嵌播放
                                                 }
-                                                .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
+                                                .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm),
+                                            contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = episode.name.ifBlank { "第${index + 1}集" },
+                                                text = episode.name.ifBlank { "${index + 1}" },
                                                 style = MiuixTheme.textStyles.body2,
-                                                color = if (isFirst) DesignTokens.brandBlue
+                                                color = if (isSelected) Color.White
                                                         else MiuixTheme.colorScheme.onSurface
                                             )
                                         }
@@ -354,37 +347,28 @@ fun DetailScreen(
                     // 底部操作栏（对标设计图：收藏/换源/分享）
                     item {
                         Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
-                        // 底部操作栏 — 逆向图标: like/star/chat/share/download/rank
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            val isFav = isFavorite
-                            listOf(
-                                Triple(if (isFav) IconStar else IconLike, if (isFav) "已收藏" else "收藏") { viewModel.switchSource(state.currentSource) },
-                                Triple(IconChat, "评论") {},
-                                Triple(IconShare, "分享") { copyToClipboard("${video.title}\n${decodedUrl}") },
-                                Triple(IconDownload, "缓存") {},
-                                Triple(IconRank, "排行") {}
-                            ).forEach { (icon, label, action) ->
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier
-                                        .clickable { action() }
-                                        .padding(horizontal = DesignTokens.spacingMd)
-                                ) {
-                                    androidx.compose.foundation.Image(
-                                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
-                                        contentDescription = label,
-                                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(label, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
-                                }
+                            // 收藏按钮 — 修复：调用正确的 toggleFavorite
+                            ActionButton(
+                                icon = if (isFavorite) IconStar else IconLike,
+                                label = if (isFavorite) "已收藏" else "收藏",
+                                tint = if (isFavorite) DesignTokens.brandBlue else MiuixTheme.colorScheme.onSurface
+                            ) {
+                                val fav = Favorite(
+                                    videoId = videoId, title = video.title,
+                                    cover = video.cover, sourceName = sourceName, detailUrl = decodedUrl
+                                )
+                                isFavorite = userDataRepository.toggleFavorite(fav)
                             }
+                            ActionButton(IconChat, "评论") {}
+                            ActionButton(IconShare, "分享") { shareAction(video.title, "${video.title}\n$decodedUrl") }
+                            ActionButton(IconDownload, "缓存") {}
+                            ActionButton(IconRank, "排行") {}
                         }
                         Spacer(modifier = Modifier.height(DesignTokens.spacingXl))
                     }
@@ -398,5 +382,32 @@ fun DetailScreen(
                 )
             }
         }
+    }
+}
+
+/** 底部操作按钮 — 44dp 最小触控区域 */
+@Composable
+private fun ActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: androidx.compose.ui.graphics.Color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .widthIn(min = 44.dp)
+    ) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
+            contentDescription = label,
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(tint),
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(label, style = top.yukonga.miuix.kmp.theme.MiuixTheme.textStyles.footnote2,
+            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.outline)
     }
 }

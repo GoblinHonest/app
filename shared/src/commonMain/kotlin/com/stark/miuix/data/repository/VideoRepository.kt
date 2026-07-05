@@ -88,6 +88,11 @@ class VideoRepository(
         _searchHistory.value = emptyList()
     }
 
+    /** 删除单条搜索历史 */
+    fun removeHistoryItem(keyword: String) {
+        _searchHistory.value = _searchHistory.value.filter { it != keyword }
+    }
+
     /** 将关键词追加到历史队首（去重 + 限长） */
     private fun addToHistory(keyword: String) {
         val current = _searchHistory.value.toMutableList()

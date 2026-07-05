@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,7 +41,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -56,8 +54,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  */
 @Composable
 fun ShimmerVideoGrid(
-    columns: Int = 2,
-    itemCount: Int = 6
+    columns: Int = 3,
+    itemCount: Int = 9
 ) {
     val transition = rememberInfiniteTransition()
     val shimmerOffset by transition.animateFloat(
@@ -71,19 +69,20 @@ fun ShimmerVideoGrid(
 
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+            MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
         start = Offset(shimmerOffset, 0f),
-        end = Offset(shimmerOffset + 300f, 0f)
+        end = Offset(shimmerOffset + 400f, 300f)
     )
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        userScrollEnabled = false
     ) {
         items(itemCount) {
             ShimmerVideoCardPlaceholder(shimmerBrush)
@@ -96,35 +95,30 @@ fun ShimmerVideoGrid(
  */
 @Composable
 private fun ShimmerVideoCardPlaceholder(brush: Brush) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(brush)
-            )
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
-                )
-            }
-        }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // 封面占位 — 2:3 海报比例，与 VideoCard 一致
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2f / 3f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(brush)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .height(12.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(brush)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.55f)
+                .height(10.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(brush)
+        )
     }
 }

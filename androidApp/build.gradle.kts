@@ -28,7 +28,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.stark.miuix"
+        applicationId = "io.cinehub.app"
         minSdk = 33
         targetSdk = 35
         versionCode = 1

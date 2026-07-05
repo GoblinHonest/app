@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
@@ -49,11 +50,17 @@ import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoCard
+import com.stark.miuix.ui.icons.IconSearch
 import com.stark.miuix.ui.theme.DesignTokens
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 
 /**
  * 首页 — 参考优酷 App 设计
@@ -86,17 +93,10 @@ fun HomeScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
+        modifier = Modifier.fillMaxSize()  // 不在此加 statusBar padding，由 SearchBar 内部处理
     ) {
         // 顶部搜索栏
-        SearchBar(
-            isRefreshing = isRefreshing,
-            onSearchClick = onNavigateToSearch,
-            onRefreshClick = { viewModel.refresh() },
-            onSourceClick = onNavigateToSourceManage
-        )
+        SearchBar(onSearchClick = onNavigateToSearch)
 
         when (val state = uiState) {
             is HomeUiState.Loading -> ShimmerVideoGrid()
@@ -104,15 +104,34 @@ fun HomeScreen(
                 if (state.sources.isEmpty()) {
                     EmptySourceHint(onNavigateToSourceManage)
                 } else {
-                    HomeContentFeed(
-                        state = state,
-                        onVideoClick = { video ->
-                            onNavigateToDetail(
-                                video.sourceName, video.url, video.title, video.cover
+                    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                    val pullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+                    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refresh() },
+                        modifier = Modifier.fillMaxSize(),
+                        state = pullState,
+                        indicator = {
+                            // 蓝色指示器，与顶部 brandBlue 渐变一致
+                            androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator(
+                                state = pullState,
+                                isRefreshing = isRefreshing,
+                                color = DesignTokens.brandBlue,
+                                containerColor = MiuixTheme.colorScheme.surface,
+                                modifier = Modifier.align(Alignment.TopCenter)
                             )
-                        },
-                        onCategoryClick = onNavigateToCategory
-                    )
+                        }
+                    ) {
+                        HomeContentFeed(
+                            state = state,
+                            onVideoClick = { video ->
+                                onNavigateToDetail(
+                                    video.sourceName, video.url, video.title, video.cover
+                                )
+                            },
+                            onCategoryClick = onNavigateToCategory
+                        )
+                    }
                 }
             }
             is HomeUiState.Error -> ErrorContent(state.message) { viewModel.loadVideos() }
@@ -122,48 +141,55 @@ fun HomeScreen(
 
 @Composable
 private fun SearchBar(
-    isRefreshing: Boolean,
-    onSearchClick: () -> Unit,
-    onRefreshClick: () -> Unit,
-    onSourceClick: () -> Unit
+    onSearchClick: () -> Unit
 ) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        DesignTokens.brandBlue.copy(alpha = 0.12f),
+                        MiuixTheme.colorScheme.surface.copy(alpha = 0f)
+                    )
+                )
+            )
+    ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 搜索框
+        // 搜索框 — pill 44dp，全宽，下拉刷新替代独立刷新按钮
         Box(
             modifier = Modifier
-                .weight(1f)
-                .height(DesignTokens.searchBarHeight)
-                .clip(RoundedCornerShape(DesignTokens.radiusXl))
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(RoundedCornerShape(22.dp))
                 .background(MiuixTheme.colorScheme.surfaceVariant)
                 .clickable(onClick = onSearchClick)
                 .padding(horizontal = DesignTokens.spacingLg),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = "搜索视频、演员...",
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.outline
-            )
-        }
-        // 管理源
-        Box(
-            modifier = Modifier
-                .height(DesignTokens.searchBarHeight)
-                .clip(RoundedCornerShape(DesignTokens.radiusMd))
-                .background(MiuixTheme.colorScheme.surfaceVariant)
-                .clickable(onClick = onSourceClick)
-                .padding(horizontal = DesignTokens.spacingMd),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("源", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.foundation.Image(
+                    painter = rememberVectorPainter(IconSearch),
+                    contentDescription = "搜索",
+                    modifier = Modifier.size(18.dp),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MiuixTheme.colorScheme.outline)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "搜索视频、演员...",
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.outline
+                )
+            }
         }
     }
+    } // Box gradient
 }
 
 @Composable
@@ -212,14 +238,26 @@ private fun HomeContentFeed(
             }
         }
 
-        // 推荐标题
+        // 推荐标题 — 左侧 4dp 蓝色竖线 + 「精选推荐」字号加大
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = "推荐",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = DesignTokens.spacingXs)
-            )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(DesignTokens.brandBlue)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "精选推荐",
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.onSurface
+                )
+            }
         }
 
         // 3 列视频卡片（跳过第一个已展示在 Banner 里的）
@@ -247,32 +285,25 @@ private fun CategoryTabs(
     ) {
         itemsIndexed(sources) { index, source ->
             val isSelected = index == selectedIndex
-            // 逆向APK Tab 样式：无背景填充，选中态用下划线+加粗
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // 胶囊填充样式：选中时 brandBlue 背景白字，未选中时透明背景主题色文字
+            Box(
                 modifier = Modifier
+                    .padding(horizontal = DesignTokens.spacingXs, vertical = DesignTokens.spacingXs)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (isSelected) DesignTokens.brandBlue
+                        else Color.Transparent
+                    )
                     .clickable { onSelect(index) }
-                    .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingXs)
+                    .padding(horizontal = DesignTokens.spacingMd, vertical = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = source.sourceName,
                     style = MiuixTheme.textStyles.body2,
-                    color = if (isSelected) MiuixTheme.colorScheme.onSurface
+                    color = if (isSelected) Color.White
                            else MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
-                // 选中指示器下划线
-                if (isSelected) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(DesignTokens.spacingLg)
-                            .height(2.dp)
-                            .clip(RoundedCornerShape(1.dp))
-                            .background(DesignTokens.brandBlue)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
             }
         }
     }
@@ -296,12 +327,12 @@ private fun BannerCard(
         if (coverUrl.isNotBlank() &&
             (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))
         ) {
-            KamelImage(
-                resource = { asyncPainterResource(data = coverUrl) },
+            val ctx = LocalPlatformContext.current
+            AsyncImage(
+                model = ImageRequest.Builder(ctx).data(coverUrl).build(),
                 contentDescription = video.title,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                onFailure = { }
+                contentScale = ContentScale.Crop
             )
         }
 
@@ -339,47 +370,59 @@ private fun BannerCard(
                 )
             }
         }
+
+        // 左下角「热播」红色 badge
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 12.dp, bottom = if (video.description.isNotBlank()) 52.dp else 36.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(DesignTokens.badgeRed)
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = "热播",
+                style = MiuixTheme.textStyles.footnote2,
+                color = Color.White
+            )
+        }
+
+        // 右侧播放按钮——使用 IconPlay SVG（更清晰）
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 16.dp)
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.35f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = rememberVectorPainter(com.stark.miuix.ui.icons.IconPlay),
+                contentDescription = "播放",
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 
 @Composable
 private fun EmptySourceHint(onNavigateToSourceManage: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("暂无视频源", style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-            Text("请先导入视频源", style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline)
-            Spacer(modifier = Modifier.height(DesignTokens.spacingXl))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                    .background(MiuixTheme.colorScheme.primary)
-                    .clickable { onNavigateToSourceManage() }
-                    .padding(horizontal = 32.dp, vertical = DesignTokens.spacingMd)
-            ) {
-                Text("导入视频源", style = MiuixTheme.textStyles.body1, color = Color.White)
-            }
-        }
-    }
+    com.stark.miuix.ui.components.EmptyStateView(
+        title = "暂无视频源",
+        message = "导入视频源后即可开始使用",
+        actionText = "管理源",
+        onAction = onNavigateToSourceManage
+    )
 }
 
 @Composable
 private fun ErrorContent(message: String, onRetry: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("加载失败", style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-            Text(message, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline)
-            Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                    .background(MiuixTheme.colorScheme.primary)
-                    .clickable(onClick = onRetry)
-                    .padding(horizontal = 24.dp, vertical = DesignTokens.spacingSm)
-            ) {
-                Text("重试", style = MiuixTheme.textStyles.body2, color = Color.White)
-            }
-        }
-    }
+    com.stark.miuix.ui.components.EmptyStateView(
+        title = "加载失败",
+        message = message,
+        actionText = "重试",
+        onAction = onRetry
+    )
 }
