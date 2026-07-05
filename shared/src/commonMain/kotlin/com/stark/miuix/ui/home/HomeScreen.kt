@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -241,27 +242,37 @@ private fun CategoryTabs(
     onSelect: (Int) -> Unit
 ) {
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
         modifier = Modifier.padding(vertical = DesignTokens.spacingXs)
     ) {
         itemsIndexed(sources) { index, source ->
             val isSelected = index == selectedIndex
-            Box(
+            // 逆向APK Tab 样式：无背景填充，选中态用下划线+加粗
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                    .background(
-                        if (isSelected) MiuixTheme.colorScheme.primary
-                        else Color.Transparent
-                    )
                     .clickable { onSelect(index) }
                     .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingXs)
             ) {
                 Text(
                     text = source.sourceName,
                     style = MiuixTheme.textStyles.body2,
-                    color = if (isSelected) Color.White
+                    color = if (isSelected) MiuixTheme.colorScheme.onSurface
                            else MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
+                // 选中指示器下划线
+                if (isSelected) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(DesignTokens.spacingLg)
+                            .height(2.dp)
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(DesignTokens.brandBlue)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
             }
         }
     }
