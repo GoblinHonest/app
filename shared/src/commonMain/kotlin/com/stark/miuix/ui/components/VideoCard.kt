@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,15 +41,12 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 视频卡片 — 竖向海报风格（参考优酷/B站设计）
+ * 视频卡片 — 对标优酷 App 设计
  *
- * 布局：
- * - 2:3 竖向海报封面（主流视频 App 标准比例）
- * - 左下角状态角标（热搜/更新中）
- * - 底部渐变叠层 + 集数信息
- * - 卡片下方显示标题
- *
- * 点击时有轻微缩放反馈（scale 0.96）。
+ * 封面：2:3 竖向海报比例，左上角状态芯片（有更新/热搜），右上角标签（独播）
+ * 封面底部：白色小字「更新至X话」
+ * 卡片下方：进度文字 + 描述剪辑
+ * 点击动画：0.96 缩放
  */
 @Composable
 fun VideoCard(
@@ -69,15 +67,15 @@ fun VideoCard(
             .fillMaxWidth()
             .scale(scale)
             .clickable {
-                pressed = true
+                pressed = false
                 onClick()
             }
     ) {
-        // 封面区域（2:3 竖向海报比例）
+        // —— 封面 ——
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(2f / 3f)
+                .aspectRatio(DesignTokens.coverAspectRatio)
                 .clip(RoundedCornerShape(DesignTokens.radiusMd))
                 .background(MiuixTheme.colorScheme.surfaceVariant)
         ) {
@@ -92,85 +90,71 @@ fun VideoCard(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     onLoading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MiuixTheme.colorScheme.surfaceVariant)
-                        )
+                        Box(modifier = Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surfaceVariant))
                     },
-                    onFailure = { exception ->
-                        AppLogger.e("Image", "加载失败: $coverUrl", exception)
+                    onFailure = { e ->
+                        AppLogger.e("Image", "加载失败: $coverUrl", e)
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MiuixTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.fillMaxSize().background(MiuixTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = searchResult.title.take(2),
-                                style = MiuixTheme.textStyles.headline1,
-                                color = MiuixTheme.colorScheme.outline
-                            )
+                            Text(searchResult.title.take(2), style = MiuixTheme.textStyles.headline1, color = MiuixTheme.colorScheme.outline)
                         }
                     }
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MiuixTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = searchResult.title.take(2),
-                        style = MiuixTheme.textStyles.headline1,
-                        color = MiuixTheme.colorScheme.outline
-                    )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(searchResult.title.take(2), style = MiuixTheme.textStyles.headline1, color = MiuixTheme.colorScheme.outline)
                 }
             }
 
-            // 底部渐变 — 显示集数/描述
+            // 封面底部渐变
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
+                    .height(52.dp)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.75f)
-                            )
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f))
                         )
                     )
             )
 
-            // 左下角角标（更新状态）
-            val badgeText = badge.ifBlank {
-                if (searchResult.description.isNotBlank()) searchResult.description.take(8)
+            // 左上角状态芯片（有更新 / 热搜榜）
+            val statusBadge = badge.ifBlank {
+                if (searchResult.description.contains("更新")) "有更新"
                 else ""
             }
-            if (badgeText.isNotBlank()) {
+            if (statusBadge.isNotBlank()) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(6.dp)
+                        .align(Alignment.TopStart)
+                        .padding(5.dp)
                         .background(
-                            Color(0xFFE11D48).copy(alpha = 0.9f),
+                            Color(0xFFE11D48).copy(alpha = 0.92f),
                             RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 5.dp, vertical = 2.dp)
                 ) {
-                    Text(
-                        text = badgeText,
-                        style = MiuixTheme.textStyles.footnote2,
-                        color = Color.White
-                    )
+                    Text(statusBadge, style = MiuixTheme.textStyles.footnote2, color = Color.White)
                 }
+            }
+
+            // 底部更新信息
+            if (searchResult.description.isNotBlank()) {
+                Text(
+                    text = searchResult.description.take(8),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 6.dp, bottom = 4.dp)
+                )
             }
         }
 
-        // 标题
+        // —— 封面下标题 ——
         Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
         Text(
             text = searchResult.title,
