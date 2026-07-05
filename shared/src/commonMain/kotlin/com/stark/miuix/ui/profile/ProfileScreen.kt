@@ -20,6 +20,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import com.stark.miuix.ui.icons.IconDownload
+import com.stark.miuix.ui.icons.IconHistory
+import com.stark.miuix.ui.icons.IconLike
+import com.stark.miuix.ui.icons.IconNotice
+import com.stark.miuix.ui.icons.IconRank
+import com.stark.miuix.ui.icons.IconSettings
+import com.stark.miuix.ui.icons.IconShare
+import com.stark.miuix.ui.icons.IconStar
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -225,11 +237,12 @@ private fun BannerPromo() {
 /** 四格功能图标（对标设计图 — 线条图标+文字） */
 @Composable
 private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
+    // 逆向图标: star(收藏) / time(历史) / download(缓存) / notice(消息)
     val items = listOf(
-        QuickItem("♡", "我的收藏", if (favoriteCount > 0) "$favoriteCount" else ""),
-        QuickItem("◷", "历史记录", if (historyCount > 0) "$historyCount" else ""),
-        QuickItem("↓", "离线缓存", ""),
-        QuickItem("✉", "我的消息", "")
+        Triple(IconStar, "我的收藏", if (favoriteCount > 0) "$favoriteCount" else ""),
+        Triple(IconHistory, "历史记录", if (historyCount > 0) "$historyCount" else ""),
+        Triple(IconDownload, "离线缓存", ""),
+        Triple(IconNotice, "我的消息", "")
     )
     Row(
         modifier = Modifier
@@ -237,19 +250,22 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
             .padding(top = DesignTokens.spacingXl, bottom = DesignTokens.spacingSm),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        items.forEach { item ->
+        items.forEach { (icon, label, badge) ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.width(72.dp)
             ) {
                 Box(contentAlignment = Alignment.TopEnd) {
-                    Text(
-                        text = item.icon,
-                        style = MiuixTheme.textStyles.headline1,
-                        color = MiuixTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(4.dp)
+                    // SVG 路径图标（对标逆向 APK 图标集）
+                    androidx.compose.foundation.Image(
+                        painter = rememberVectorPainter(icon),
+                        contentDescription = label,
+                        colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+                        modifier = Modifier
+                            .size(26.dp)
+                            .padding(2.dp)
                     )
-                    if (item.badge.isNotBlank()) {
+                    if (badge.isNotBlank()) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
@@ -257,7 +273,7 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
                                 .padding(horizontal = 4.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                text = item.badge,
+                                text = badge,
                                 style = MiuixTheme.textStyles.footnote2,
                                 color = Color.White
                             )
@@ -266,7 +282,7 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
                 }
                 Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
                 Text(
-                    text = item.label,
+                    text = label,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurface
                 )
@@ -275,7 +291,7 @@ private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
     }
 }
 
-private data class QuickItem(val icon: String, val label: String, val badge: String)
+private data class QuickItem(val icon: ImageVector, val label: String, val badge: String)
 
 /** 继续追番卡片 — 对标设计图的「继续追番」条目 */
 @Composable
@@ -414,12 +430,13 @@ private fun MenuList(
 ) {
     val groups = listOf(
         listOf(
-            MenuItem("⚙", "设置", "主题、缓存、语言", onNavigateToSettings),
+            // 逆向图标: settings/star/download/share
+            MenuItem(IconSettings, "设置", "主题、缓存、语言", onNavigateToSettings),
         ),
         listOf(
-            MenuItem("☆", "我的收藏", "${favorites.size} 个", {}),
-            MenuItem("↓", "检测更新", "当前最新版本", {}),
-            MenuItem("!", "关于", "Miuix 视频聚合 v1.0.0", {})
+            MenuItem(IconStar, "我的收藏", "${favorites.size} 个", {}),
+            MenuItem(IconDownload, "检测更新", "当前最新版本", {}),
+            MenuItem(IconShare, "关于", "Miuix 视频聚合 v1.0.0", {})
         )
     )
 
@@ -452,11 +469,14 @@ private fun MenuList(
                             ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = item.icon,
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.primary,
-                            modifier = Modifier.width(32.dp)
+                        // SVG 路径图标（逆向 APK 图标集）
+                        androidx.compose.foundation.Image(
+                            painter = rememberVectorPainter(item.icon),
+                            contentDescription = item.title,
+                            colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+                            modifier = Modifier
+                                .size(22.dp)
+                                .width(32.dp)
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
@@ -485,7 +505,7 @@ private fun MenuList(
 }
 
 private data class MenuItem(
-    val icon: String,
+    val icon: ImageVector,
     val title: String,
     val subtitle: String,
     val onClick: () -> Unit
