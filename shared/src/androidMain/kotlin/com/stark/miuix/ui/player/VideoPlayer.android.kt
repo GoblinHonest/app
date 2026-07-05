@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -230,61 +231,87 @@ actual fun VideoPlayer(
             }
         }
 
-        // 自定义控制层
+        // 自定义控制层 — 对标优酷全屏播放器设计图
         AnimatedVisibility(
             visible = showControls,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // 顶部栏
+
+                // 顶部栏：← 返回 | 标题 | 倍速
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.TopCenter)
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)
+                            )
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "← 返回",
-                        style = MiuixTheme.textStyles.body2,
+                        text = "←",
+                        style = MiuixTheme.textStyles.headline1,
                         color = Color.White,
-                        modifier = Modifier.clickable {
-                            activity?.onBackPressed()
-                        }
+                        modifier = Modifier.clickable { activity?.onBackPressed() }
                     )
                     Text(
                         text = title,
-                        style = MiuixTheme.textStyles.body1,
-                        color = Color.White,
-                        modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "${playbackSpeed}x",
                         style = MiuixTheme.textStyles.body2,
                         color = Color.White,
-                        modifier = Modifier.clickable {
-                            val next = when (playbackSpeed) {
-                                1f -> 1.5f; 1.5f -> 2f; 2f -> 3f; else -> 1f
-                            }
-                            playbackSpeed = next
-                            exoPlayer.setPlaybackSpeed(next)
-                        }
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1
                     )
+                    // 倍速按钮（对标设计图右侧操作区）
+                    listOf("倍速", "选集").forEach { label ->
+                        Text(
+                            text = if (label == "倍速") "${playbackSpeed}x" else label,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier
+                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                .clickable {
+                                    if (label == "倍速") {
+                                        val next = when (playbackSpeed) {
+                                            1f -> 1.5f; 1.5f -> 2f; 2f -> 3f; else -> 1f
+                                        }
+                                        playbackSpeed = next
+                                        exoPlayer.setPlaybackSpeed(next)
+                                    }
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
-                // 中央播放/暂停
+                // 右侧：锁屏按钮（设计图右侧圆形按钮）
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp)
+                        .size(40.dp)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(50))
+                        .clickable { /* 锁屏功能 */ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🔓", style = MiuixTheme.textStyles.body2, color = Color.White)
+                }
+
+                // 中央播放/暂停（双击区域）
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        .size(56.dp)
+                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50))
                         .clickable {
                             if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                             isPlaying = exoPlayer.isPlaying
-                        }
-                        .padding(24.dp)
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (isPlaying) "⏸" else "▶",
@@ -293,35 +320,111 @@ actual fun VideoPlayer(
                     )
                 }
 
-                // 底部进度
+                // 底部控制区 — 完整对标设计图
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
+                            )
+                        )
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
+                    // 进度条行：时间 | 进度条 | 总时长
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = formatTime(currentPosition), style = MiuixTheme.textStyles.footnote1, color = Color.White)
-                        Text(text = formatTime(duration), style = MiuixTheme.textStyles.footnote1, color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    // 简易进度条
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .background(Color.White.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
-                    ) {
-                        val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
+                        Text(
+                            text = formatTime(currentPosition),
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                        // 进度条（带拖动圆点）
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(progress)
-                                .height(4.dp)
-                                .background(Color.White, RoundedCornerShape(2.dp))
+                                .weight(1f)
+                                .height(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp)
+                                    .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(1.5.dp))
+                            )
+                            val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(progress)
+                                    .height(3.dp)
+                                    .background(Color.White, RoundedCornerShape(1.5.dp))
+                                    .align(Alignment.CenterStart)
+                            )
+                            // 进度点
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .padding(start = (progress * 100).coerceIn(0f, 100f).dp.coerceAtMost(2000.dp))
+                                    .size(12.dp)
+                                    .background(Color.White, RoundedCornerShape(50))
+                            )
+                        }
+                        Text(
+                            text = formatTime(duration),
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    // 功能栏：▶ | ⏭ | 弹幕 ··· 超分辨率 | 倍速 | 选集
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isPlaying) "⏸" else "▶",
+                            style = MiuixTheme.textStyles.body1,
+                            color = Color.White,
+                            modifier = Modifier.clickable {
+                                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                            }.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                        Text(
+                            text = "⏭",
+                            style = MiuixTheme.textStyles.body1,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "超分",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(horizontal = 6.dp)
+                        )
+                        Text(
+                            text = "${playbackSpeed}x",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .clickable {
+                                    val next = when (playbackSpeed) {
+                                        1f -> 1.5f; 1.5f -> 2f; 2f -> 3f; else -> 1f
+                                    }
+                                    playbackSpeed = next
+                                    exoPlayer.setPlaybackSpeed(next)
+                                }
+                                .padding(horizontal = 6.dp)
+                        )
+                        Text(
+                            text = "选集",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(start = 6.dp)
                         )
                     }
                 }
