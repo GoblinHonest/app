@@ -1,1 +1,16 @@
-[{"text": "package com.stark.miuix\n\nimport android.os.Bundle\nimport androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\nimport androidx.activity.enableEdgeToEdge\nimport com.stark.miuix.data.storage.androidDataDir\nimport io.kamel.core.config.KamelConfig\nimport io.kamel.core.config.httpFetcher\nimport io.kamel.image.config.Default\nimport io.kamel.image.config.LocalKamelImageLoader\nimport io.kamel.image.config.resourcesFetcher\nimport io.ktor.client.HttpClient\nimport io.ktor.client.engine.okhttp.OkHttp\nimport io.ktor.client.plugins.HttpTimeout\nimport androidx.compose.runtime.CompositionLocalProvider\n\nclass MainActivity : ComponentActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        androidDataDir = filesDir.absolutePath\n        enableEdgeToEdge()\n        setContent {\n            val kamelConfig = KamelConfig {\n                takeFrom(KamelConfig.Default)\n                httpFetcher(\n                    HttpClient(OkHttp) {\n                        install(HttpTimeout) {\n                            connectTimeoutMillis = 15_000\n                            requestTimeoutMillis = 30_000\n                        }\n                    }\n                )\n                resourcesFetcher()\n            }\n            CompositionLocalProvider(LocalKamelImageLoader provides kamelConfig) {\n                App()\n            }\n        }\n    }\n}\n", "type": "text"}]
+package com.stark.miuix
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import com.stark.miuix.data.storage.androidDataDir
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        androidDataDir = filesDir.absolutePath
+        enableEdgeToEdge()
+        setContent { App() }
+    }
+}

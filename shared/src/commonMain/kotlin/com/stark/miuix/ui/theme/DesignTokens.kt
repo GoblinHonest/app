@@ -1,1 +1,36 @@
-[{"text": "/*\n * Copyright 2024 Stark Industries\n */\n\npackage com.stark.miuix.ui.theme\n\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.unit.dp\nimport androidx.compose.ui.unit.sp\n\n/**\n * 全局设计 Token\n *\n * 参考 Bangumi/优酷/B站 App 设计规范，基于 iOS HIG 间距体系。\n */\nobject DesignTokens {\n\n    // —— 页面内边距 ——\n    val screenPadding = 16.dp\n\n    // —— 间距体系（iOS 4pt 基础网格）——\n    val spacingXs = 4.dp\n    val spacingSm = 8.dp\n    val spacingMd = 12.dp\n    val spacingLg = 16.dp\n    val spacingXl = 24.dp\n    val spacing2xl = 32.dp\n\n    // —— 圆角 ——\n    val radiusSm = 6.dp\n    val radiusMd = 10.dp\n    val radiusLg = 14.dp\n    val radiusXl = 20.dp\n    val radiusPill = 100.dp\n\n    // —— 封面比例——\n    /** 2:3 竖向海报（优酷/B站/电影海报标准） */\n    const val coverAspectRatioPoster = 2f / 3f\n\n    /** 16:9 横向（Banner/播放器） */\n    const val coverAspectRatioWide = 16f / 9f\n\n    // —— 组件尺寸 ——\n    val searchBarHeight = 40.dp\n    val bottomBarHeight = 56.dp\n    val gridMinWidth = 108.dp    // 3 列趁键宽度\n\n    // —— 图标大小 ——\n    val iconSm = 18.dp\n    val iconMd = 22.dp\n    val iconLg = 28.dp\n\n    // —— 品牌主色（爬虫/优酷风格）——\n    val brandBlue = Color(0xFF3478F6)       // 主色蓝\n    val brandBlueDark = Color(0xFF1A5FD4)   // 深蓝\n    val badgeRed = Color(0xFFE11D48)        // 角标红\n    val badgeOrange = Color(0xFFFF6B35)     // 更新橙\n\n    // —— 底栏玻璃效果 ——\n    val bottomBarBlur = 20.dp\n    val bottomBarAlpha = 0.92f\n}\n", "type": "text"}]
+/*
+ * Copyright 2024 Stark Industries
+ */
+
+package com.stark.miuix.ui.theme
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
+/**
+ * 全局设计 Token — 参考 Bangumi/优酷/B站 App 设计规范
+ */
+object DesignTokens {
+    val screenPadding = 16.dp
+    val spacingXs = 4.dp
+    val spacingSm = 8.dp
+    val spacingMd = 12.dp
+    val spacingLg = 16.dp
+    val spacingXl = 24.dp
+    val spacing2xl = 32.dp
+    val radiusSm = 6.dp
+    val radiusMd = 10.dp
+    val radiusLg = 14.dp
+    val radiusXl = 20.dp
+    val radiusPill = 100.dp
+    const val coverAspectRatio = 2f / 3f
+    val searchBarHeight = 40.dp
+    val bottomBarHeight = 56.dp
+    val gridMinWidth = 108.dp
+    val cardGap = 8.dp
+    val brandBlue = Color(0xFF3478F6)
+    val brandBlueDark = Color(0xFF1A5FD4)
+    val badgeRed = Color(0xFFE11D48)
+    val badgeOrange = Color(0xFFFF6B35)
+    val bottomBarAlpha = 0.92f
+}

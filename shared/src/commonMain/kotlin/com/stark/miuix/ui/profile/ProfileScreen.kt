@@ -1,1 +1,490 @@
-[{"text": "/*\n * Copyright 2024 Stark Industries\n */\n\npackage com.stark.miuix.ui.profile\n\nimport androidx.compose.foundation.ExperimentalFoundationApi\nimport androidx.compose.foundation.background\nimport androidx.compose.foundation.clickable\nimport androidx.compose.foundation.combinedClickable\nimport androidx.compose.foundation.layout.Arrangement\nimport androidx.compose.foundation.layout.Box\nimport androidx.compose.foundation.layout.Column\nimport androidx.compose.foundation.layout.PaddingValues\nimport androidx.compose.foundation.layout.Row\nimport androidx.compose.foundation.layout.Spacer\nimport androidx.compose.foundation.layout.WindowInsets\nimport androidx.compose.foundation.layout.fillMaxSize\nimport androidx.compose.foundation.layout.fillMaxWidth\nimport androidx.compose.foundation.layout.height\nimport androidx.compose.foundation.layout.padding\nimport androidx.compose.foundation.layout.size\nimport androidx.compose.foundation.layout.statusBars\nimport androidx.compose.foundation.layout.width\nimport androidx.compose.foundation.layout.windowInsetsPadding\nimport androidx.compose.foundation.lazy.LazyColumn\nimport androidx.compose.foundation.lazy.items\nimport androidx.compose.foundation.shape.CircleShape\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.runtime.Composable\nimport androidx.compose.runtime.collectAsState\nimport androidx.compose.runtime.getValue\nimport androidx.compose.runtime.mutableStateOf\nimport androidx.compose.runtime.remember\nimport androidx.compose.runtime.setValue\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.Brush\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.stark.miuix.data.model.Favorite\nimport com.stark.miuix.data.model.WatchHistory\nimport com.stark.miuix.data.repository.UserDataRepository\nimport com.stark.miuix.ui.theme.DesignTokens\nimport com.stark.miuix.util.TimeUtils\nimport top.yukonga.miuix.kmp.basic.Card\nimport top.yukonga.miuix.kmp.basic.Text\nimport top.yukonga.miuix.kmp.theme.MiuixTheme\n\n/**\n * 我的页面 — 参考 Bangumi App 设计\n *\n * 结构（完全对标设计图）：\n * 1. 用户信息区（头像 + 名字 + 等级）\n * 2. 蓝色渐变 Banner 条（功能引导）\n * 3. 四宫格功能图标\n * 4. 「继续追番」卡片（最近观看）\n * 5. 工具 2×2 网格（源管理 / 主题）\n * 6. 菜单列表（设置 / 关于）\n */\n@Composable\nfun ProfileScreen(\n    userDataRepository: UserDataRepository,\n    onNavigateToSourceManage: () -> Unit,\n    onNavigateToSettings: () -> Unit,\n    onNavigateToDetail: (String, String, String, String) -> Unit\n) {\n    val watchHistory by userDataRepository.watchHistory.collectAsState()\n    val favorites by userDataRepository.favorites.collectAsState()\n\n    LazyColumn(\n        modifier = Modifier\n            .fillMaxSize()\n            .windowInsetsPadding(WindowInsets.statusBars),\n        contentPadding = PaddingValues(bottom = 88.dp) // 底栏高度 + 安全区\n    ) {\n        // 1. 用户信息\n        item {\n            UserHeader()\n        }\n\n        // 2. 蓝色功能 Banner\n        item {\n            BannerPromo()\n        }\n\n        // 3. 四格功能\n        item {\n            QuickGrid(\n                favoriteCount = favorites.size,\n                historyCount = watchHistory.size\n            )\n        }\n\n        // 4. 继续观看（最近一条）\n        if (watchHistory.isNotEmpty()) {\n            item {\n                Spacer(modifier = Modifier.height(DesignTokens.spacingMd))\n                ContinueWatching(\n                    item = watchHistory.first(),\n                    onClick = { h ->\n                        onNavigateToDetail(h.sourceName, h.detailUrl, h.title, h.cover)\n                    }\n                )\n            }\n        }\n\n        // 5. 功能 2×2 网格\n        item {\n            Spacer(modifier = Modifier.height(DesignTokens.spacingMd))\n            FeatureGrid(\n                onNavigateToSourceManage = onNavigateToSourceManage,\n                onNavigateToSettings = onNavigateToSettings\n            )\n        }\n\n        // 6. 菜单列表\n        item {\n            Spacer(modifier = Modifier.height(DesignTokens.spacingMd))\n            MenuList(\n                favorites = favorites,\n                onNavigateToSettings = onNavigateToSettings\n            )\n        }\n    }\n}\n\n/** 用户信息区 */\n@Composable\nprivate fun UserHeader() {\n    Row(\n        modifier = Modifier\n            .fillMaxWidth()\n            .padding(\n                horizontal = DesignTokens.screenPadding,\n                vertical = DesignTokens.spacingXl\n            ),\n        verticalAlignment = Alignment.CenterVertically\n    ) {\n        // 头像\n        Box(\n            modifier = Modifier\n                .size(60.dp)\n                .clip(CircleShape)\n                .background(\n                    Brush.linearGradient(\n                        listOf(Color(0xFF74B9FF), Color(0xFF0984E3))\n                    )\n                ),\n            contentAlignment = Alignment.Center\n        ) {\n            Text(\n                text = \"V\",\n                style = MiuixTheme.textStyles.headline1,\n                color = Color.White\n            )\n        }\n        Spacer(modifier = Modifier.width(DesignTokens.spacingMd))\n        Column(modifier = Modifier.weight(1f)) {\n            Text(\n                text = \"视频爱好者\",\n                style = MiuixTheme.textStyles.body1,\n                color = MiuixTheme.colorScheme.onSurface\n            )\n            Spacer(modifier = Modifier.height(2.dp))\n            Text(\n                text = \"普通用户\",\n                style = MiuixTheme.textStyles.footnote1,\n                color = MiuixTheme.colorScheme.outline\n            )\n        }\n        Text(\n            text = \">\",\n            style = MiuixTheme.textStyles.body1,\n            color = MiuixTheme.colorScheme.outline\n        )\n    }\n}\n\n/** 蓝色渐变 Banner 条 */\n@Composable\nprivate fun BannerPromo() {\n    Box(\n        modifier = Modifier\n            .fillMaxWidth()\n            .padding(horizontal = DesignTokens.screenPadding)\n            .clip(RoundedCornerShape(DesignTokens.radiusMd))\n            .background(\n                Brush.horizontalGradient(\n                    listOf(Color(0xFF74B9FF).copy(alpha = 0.3f), Color(0xFF0984E3).copy(alpha = 0.25f))\n                )\n            )\n            .padding(horizontal = DesignTokens.spacingLg, vertical = DesignTokens.spacingMd)\n    ) {\n        Row(\n            modifier = Modifier.fillMaxWidth(),\n            verticalAlignment = Alignment.CenterVertically\n        ) {\n            Text(\n                text = \"多源聚合，畅享海量视频内容\",\n                style = MiuixTheme.textStyles.body2,\n                color = DesignTokens.brandBlue,\n                modifier = Modifier.weight(1f)\n            )\n            Box(\n                modifier = Modifier\n                    .clip(RoundedCornerShape(DesignTokens.radiusPill))\n                    .background(DesignTokens.brandBlue)\n                    .padding(horizontal = 14.dp, vertical = 5.dp)\n            ) {\n                Text(\n                    text = \"导入源\",\n                    style = MiuixTheme.textStyles.footnote1,\n                    color = Color.White\n                )\n            }\n        }\n    }\n}\n\n/** 四格功能图标（对标设计图 — 线条图标+文字） */\n@Composable\nprivate fun QuickGrid(favoriteCount: Int, historyCount: Int) {\n    val items = listOf(\n        QuickItem(\"♡\", \"我的收藏\", if (favoriteCount > 0) \"$favoriteCount\" else \"\"),\n        QuickItem(\"◷\", \"历史记录\", if (historyCount > 0) \"$historyCount\" else \"\"),\n        QuickItem(\"↓\", \"离线缓存\", \"\"),\n        QuickItem(\"✉\", \"我的消息\", \"\")\n    )\n    Row(\n        modifier = Modifier\n            .fillMaxWidth()\n            .padding(top = DesignTokens.spacingXl, bottom = DesignTokens.spacingSm),\n        horizontalArrangement = Arrangement.SpaceEvenly\n    ) {\n        items.forEach { item ->\n            Column(\n                horizontalAlignment = Alignment.CenterHorizontally,\n                modifier = Modifier.width(72.dp)\n            ) {\n                Box(contentAlignment = Alignment.TopEnd) {\n                    Text(\n                        text = item.icon,\n                        style = MiuixTheme.textStyles.headline1,\n                        color = MiuixTheme.colorScheme.onSurface,\n                        modifier = Modifier.padding(4.dp)\n                    )\n                    if (item.badge.isNotBlank()) {\n                        Box(\n                            modifier = Modifier\n                                .clip(RoundedCornerShape(8.dp))\n                                .background(DesignTokens.badgeRed)\n                                .padding(horizontal = 4.dp, vertical = 1.dp)\n                        ) {\n                            Text(\n                                text = item.badge,\n                                style = MiuixTheme.textStyles.footnote2,\n                                color = Color.White\n                            )\n                        }\n                    }\n                }\n                Spacer(modifier = Modifier.height(DesignTokens.spacingXs))\n                Text(\n                    text = item.label,\n                    style = MiuixTheme.textStyles.footnote1,\n                    color = MiuixTheme.colorScheme.onSurface\n                )\n            }\n        }\n    }\n}\n\nprivate data class QuickItem(val icon: String, val label: String, val badge: String)\n\n/** 继续追番卡片 — 对标设计图的「继续追番」条目 */\n@Composable\nprivate fun ContinueWatching(item: WatchHistory, onClick: (WatchHistory) -> Unit) {\n    Card(\n        modifier = Modifier\n            .fillMaxWidth()\n            .padding(horizontal = DesignTokens.screenPadding)\n            .clickable { onClick(item) },\n        cornerRadius = DesignTokens.radiusMd\n    ) {\n        Row(\n            modifier = Modifier\n                .fillMaxWidth()\n                .padding(DesignTokens.spacingMd),\n            verticalAlignment = Alignment.CenterVertically\n        ) {\n            // 封面缩略图\n            Box(\n                modifier = Modifier\n                    .size(width = 56.dp, height = 40.dp)\n                    .clip(RoundedCornerShape(DesignTokens.radiusSm))\n                    .background(MiuixTheme.colorScheme.surfaceVariant),\n                contentAlignment = Alignment.Center\n            ) {\n                Text(\n                    text = item.title.take(1),\n                    style = MiuixTheme.textStyles.body1,\n                    color = MiuixTheme.colorScheme.primary\n                )\n            }\n            Spacer(modifier = Modifier.width(DesignTokens.spacingMd))\n            Column(modifier = Modifier.weight(1f)) {\n                Text(\n                    text = item.title,\n                    style = MiuixTheme.textStyles.body2,\n                    color = MiuixTheme.colorScheme.onSurface,\n                    maxLines = 1,\n                    overflow = TextOverflow.Ellipsis\n                )\n                if (item.lastEpisode.isNotBlank()) {\n                    Text(\n                        text = \"已看到${item.lastEpisode}\",\n                        style = MiuixTheme.textStyles.footnote2,\n                        color = MiuixTheme.colorScheme.outline\n                    )\n                } else if (item.timestamp > 0) {\n                    Text(\n                        text = TimeUtils.formatRelative(item.timestamp),\n                        style = MiuixTheme.textStyles.footnote2,\n                        color = MiuixTheme.colorScheme.outline\n                    )\n                }\n            }\n            Text(\n                text = \"继续观看 >\",\n                style = MiuixTheme.textStyles.footnote1,\n                color = DesignTokens.brandBlue\n            )\n        }\n    }\n}\n\n/** 2×2 功能入口（对标设计图的 入站问答/主题切换 小卡片） */\n@Composable\nprivate fun FeatureGrid(\n    onNavigateToSourceManage: () -> Unit,\n    onNavigateToSettings: () -> Unit\n) {\n    Row(\n        modifier = Modifier\n            .fillMaxWidth()\n            .padding(horizontal = DesignTokens.screenPadding),\n        horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)\n    ) {\n        FeatureCard(\n            icon = \"▶\",\n            title = \"视频源管理\",\n            subtitle = \"添加 / 切换视频源\",\n            modifier = Modifier.weight(1f),\n            onClick = onNavigateToSourceManage\n        )\n        FeatureCard(\n            icon = \"◐\",\n            title = \"主题切换\",\n            subtitle = \"选择亮色或暗色\",\n            modifier = Modifier.weight(1f),\n            onClick = onNavigateToSettings\n        )\n    }\n}\n\n@Composable\nprivate fun FeatureCard(\n    icon: String,\n    title: String,\n    subtitle: String,\n    modifier: Modifier = Modifier,\n    onClick: () -> Unit\n) {\n    Card(\n        modifier = modifier.clickable(onClick = onClick),\n        cornerRadius = DesignTokens.radiusMd\n    ) {\n        Row(\n            modifier = Modifier.padding(DesignTokens.spacingMd),\n            verticalAlignment = Alignment.CenterVertically\n        ) {\n            Text(\n                text = icon,\n                style = MiuixTheme.textStyles.body1,\n                color = DesignTokens.brandBlue,\n                modifier = Modifier.width(28.dp)\n            )\n            Column {\n                Text(\n                    text = title,\n                    style = MiuixTheme.textStyles.body2,\n                    color = MiuixTheme.colorScheme.onSurface\n                )\n                Text(\n                    text = subtitle,\n                    style = MiuixTheme.textStyles.footnote2,\n                    color = MiuixTheme.colorScheme.outline\n                )\n            }\n        }\n    }\n}\n\n/** 菜单列表（对标设计图：图标+主文字+箭头，白色圆角卡片分组） */\n@Composable\nprivate fun MenuList(\n    favorites: List<Favorite>,\n    onNavigateToSettings: () -> Unit\n) {\n    val groups = listOf(\n        listOf(\n            MenuItem(\"⚙\", \"设置\", \"主题、缓存、语言\", onNavigateToSettings),\n        ),\n        listOf(\n            MenuItem(\"☆\", \"我的收藏\", \"${favorites.size} 个\", {}),\n            MenuItem(\"↓\", \"检测更新\", \"当前最新版本\", {}),\n            MenuItem(\"!\", \"关于\", \"Miuix 视频聚合 v1.0.0\", {})\n        )\n    )\n\n    groups.forEach { group ->\n        Card(\n            modifier = Modifier\n                .fillMaxWidth()\n                .padding(horizontal = DesignTokens.screenPadding)\n                .padding(bottom = DesignTokens.spacingSm),\n            cornerRadius = DesignTokens.radiusMd\n        ) {\n            Column {\n                group.forEachIndexed { index, item ->\n                    if (index > 0) {\n                        Box(\n                            modifier = Modifier\n                                .fillMaxWidth()\n                                .height(0.5.dp)\n                                .padding(horizontal = DesignTokens.spacingLg)\n                                .background(MiuixTheme.colorScheme.surfaceVariant)\n                        )\n                    }\n                    Row(\n                        modifier = Modifier\n                            .fillMaxWidth()\n                            .clickable(onClick = item.onClick)\n                            .padding(\n                                horizontal = DesignTokens.spacingLg,\n                                vertical = DesignTokens.spacingMd\n                            ),\n                        verticalAlignment = Alignment.CenterVertically\n                    ) {\n                        Text(\n                            text = item.icon,\n                            style = MiuixTheme.textStyles.body1,\n                            color = MiuixTheme.colorScheme.primary,\n                            modifier = Modifier.width(32.dp)\n                        )\n                        Column(modifier = Modifier.weight(1f)) {\n                            Text(\n                                text = item.title,\n                                style = MiuixTheme.textStyles.body1,\n                                color = MiuixTheme.colorScheme.onSurface\n                            )\n                            if (item.subtitle.isNotBlank()) {\n                                Text(\n                                    text = item.subtitle,\n                                    style = MiuixTheme.textStyles.footnote2,\n                                    color = MiuixTheme.colorScheme.outline\n                                )\n                            }\n                        }\n                        Text(\n                            text = \">\",\n                            style = MiuixTheme.textStyles.body2,\n                            color = MiuixTheme.colorScheme.outline\n                        )\n                    }\n                }\n            }\n        }\n    }\n}\n\nprivate data class MenuItem(\n    val icon: String,\n    val title: String,\n    val subtitle: String,\n    val onClick: () -> Unit\n)\n", "type": "text"}]
+/*
+ * Copyright 2024 Stark Industries
+ */
+
+package com.stark.miuix.ui.profile
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.stark.miuix.data.model.Favorite
+import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.data.repository.UserDataRepository
+import com.stark.miuix.ui.theme.DesignTokens
+import com.stark.miuix.util.TimeUtils
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/**
+ * 我的页面 — 参考 Bangumi App 设计
+ *
+ * 结构（完全对标设计图）：
+ * 1. 用户信息区（头像 + 名字 + 等级）
+ * 2. 蓝色渐变 Banner 条（功能引导）
+ * 3. 四宫格功能图标
+ * 4. 「继续追番」卡片（最近观看）
+ * 5. 工具 2×2 网格（源管理 / 主题）
+ * 6. 菜单列表（设置 / 关于）
+ */
+@Composable
+fun ProfileScreen(
+    userDataRepository: UserDataRepository,
+    onNavigateToSourceManage: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToDetail: (String, String, String, String) -> Unit
+) {
+    val watchHistory by userDataRepository.watchHistory.collectAsState()
+    val favorites by userDataRepository.favorites.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars),
+        contentPadding = PaddingValues(bottom = 88.dp) // 底栏高度 + 安全区
+    ) {
+        // 1. 用户信息
+        item {
+            UserHeader()
+        }
+
+        // 2. 蓝色功能 Banner
+        item {
+            BannerPromo()
+        }
+
+        // 3. 四格功能
+        item {
+            QuickGrid(
+                favoriteCount = favorites.size,
+                historyCount = watchHistory.size
+            )
+        }
+
+        // 4. 继续观看（最近一条）
+        if (watchHistory.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(DesignTokens.spacingMd))
+                ContinueWatching(
+                    item = watchHistory.first(),
+                    onClick = { h ->
+                        onNavigateToDetail(h.sourceName, h.detailUrl, h.title, h.cover)
+                    }
+                )
+            }
+        }
+
+        // 5. 功能 2×2 网格
+        item {
+            Spacer(modifier = Modifier.height(DesignTokens.spacingMd))
+            FeatureGrid(
+                onNavigateToSourceManage = onNavigateToSourceManage,
+                onNavigateToSettings = onNavigateToSettings
+            )
+        }
+
+        // 6. 菜单列表
+        item {
+            Spacer(modifier = Modifier.height(DesignTokens.spacingMd))
+            MenuList(
+                favorites = favorites,
+                onNavigateToSettings = onNavigateToSettings
+            )
+        }
+    }
+}
+
+/** 用户信息区 */
+@Composable
+private fun UserHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = DesignTokens.screenPadding,
+                vertical = DesignTokens.spacingXl
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 头像
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color(0xFF74B9FF), Color(0xFF0984E3))
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "V",
+                style = MiuixTheme.textStyles.headline1,
+                color = Color.White
+            )
+        }
+        Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "视频爱好者",
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "普通用户",
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.outline
+            )
+        }
+        Text(
+            text = ">",
+            style = MiuixTheme.textStyles.body1,
+            color = MiuixTheme.colorScheme.outline
+        )
+    }
+}
+
+/** 蓝色渐变 Banner 条 */
+@Composable
+private fun BannerPromo() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.screenPadding)
+            .clip(RoundedCornerShape(DesignTokens.radiusMd))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(Color(0xFF74B9FF).copy(alpha = 0.3f), Color(0xFF0984E3).copy(alpha = 0.25f))
+                )
+            )
+            .padding(horizontal = DesignTokens.spacingLg, vertical = DesignTokens.spacingMd)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "多源聚合，畅享海量视频内容",
+                style = MiuixTheme.textStyles.body2,
+                color = DesignTokens.brandBlue,
+                modifier = Modifier.weight(1f)
+            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(DesignTokens.radiusPill))
+                    .background(DesignTokens.brandBlue)
+                    .padding(horizontal = 14.dp, vertical = 5.dp)
+            ) {
+                Text(
+                    text = "导入源",
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+/** 四格功能图标（对标设计图 — 线条图标+文字） */
+@Composable
+private fun QuickGrid(favoriteCount: Int, historyCount: Int) {
+    val items = listOf(
+        QuickItem("♡", "我的收藏", if (favoriteCount > 0) "$favoriteCount" else ""),
+        QuickItem("◷", "历史记录", if (historyCount > 0) "$historyCount" else ""),
+        QuickItem("↓", "离线缓存", ""),
+        QuickItem("✉", "我的消息", "")
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = DesignTokens.spacingXl, bottom = DesignTokens.spacingSm),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        items.forEach { item ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(72.dp)
+            ) {
+                Box(contentAlignment = Alignment.TopEnd) {
+                    Text(
+                        text = item.icon,
+                        style = MiuixTheme.textStyles.headline1,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    if (item.badge.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(DesignTokens.badgeRed)
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = item.badge,
+                                style = MiuixTheme.textStyles.footnote2,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
+                Text(
+                    text = item.label,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+private data class QuickItem(val icon: String, val label: String, val badge: String)
+
+/** 继续追番卡片 — 对标设计图的「继续追番」条目 */
+@Composable
+private fun ContinueWatching(item: WatchHistory, onClick: (WatchHistory) -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.screenPadding)
+            .clickable { onClick(item) },
+        cornerRadius = DesignTokens.radiusMd
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(DesignTokens.spacingMd),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 封面缩略图
+            Box(
+                modifier = Modifier
+                    .size(width = 56.dp, height = 40.dp)
+                    .clip(RoundedCornerShape(DesignTokens.radiusSm))
+                    .background(MiuixTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item.title.take(1),
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (item.lastEpisode.isNotBlank()) {
+                    Text(
+                        text = "已看到${item.lastEpisode}",
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.outline
+                    )
+                } else if (item.timestamp > 0) {
+                    Text(
+                        text = TimeUtils.formatRelative(item.timestamp),
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.outline
+                    )
+                }
+            }
+            Text(
+                text = "继续观看 >",
+                style = MiuixTheme.textStyles.footnote1,
+                color = DesignTokens.brandBlue
+            )
+        }
+    }
+}
+
+/** 2×2 功能入口（对标设计图的 入站问答/主题切换 小卡片） */
+@Composable
+private fun FeatureGrid(
+    onNavigateToSourceManage: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.screenPadding),
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+    ) {
+        FeatureCard(
+            icon = "▶",
+            title = "视频源管理",
+            subtitle = "添加 / 切换视频源",
+            modifier = Modifier.weight(1f),
+            onClick = onNavigateToSourceManage
+        )
+        FeatureCard(
+            icon = "◐",
+            title = "主题切换",
+            subtitle = "选择亮色或暗色",
+            modifier = Modifier.weight(1f),
+            onClick = onNavigateToSettings
+        )
+    }
+}
+
+@Composable
+private fun FeatureCard(
+    icon: String,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        cornerRadius = DesignTokens.radiusMd
+    ) {
+        Row(
+            modifier = Modifier.padding(DesignTokens.spacingMd),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = icon,
+                style = MiuixTheme.textStyles.body1,
+                color = DesignTokens.brandBlue,
+                modifier = Modifier.width(28.dp)
+            )
+            Column {
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.outline
+                )
+            }
+        }
+    }
+}
+
+/** 菜单列表（对标设计图：图标+主文字+箭头，白色圆角卡片分组） */
+@Composable
+private fun MenuList(
+    favorites: List<Favorite>,
+    onNavigateToSettings: () -> Unit
+) {
+    val groups = listOf(
+        listOf(
+            MenuItem("⚙", "设置", "主题、缓存、语言", onNavigateToSettings),
+        ),
+        listOf(
+            MenuItem("☆", "我的收藏", "${favorites.size} 个", {}),
+            MenuItem("↓", "检测更新", "当前最新版本", {}),
+            MenuItem("!", "关于", "Miuix 视频聚合 v1.0.0", {})
+        )
+    )
+
+    groups.forEach { group ->
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DesignTokens.screenPadding)
+                .padding(bottom = DesignTokens.spacingSm),
+            cornerRadius = DesignTokens.radiusMd
+        ) {
+            Column {
+                group.forEachIndexed { index, item ->
+                    if (index > 0) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(0.5.dp)
+                                .padding(horizontal = DesignTokens.spacingLg)
+                                .background(MiuixTheme.colorScheme.surfaceVariant)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = item.onClick)
+                            .padding(
+                                horizontal = DesignTokens.spacingLg,
+                                vertical = DesignTokens.spacingMd
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = item.icon,
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.width(32.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.title,
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                            if (item.subtitle.isNotBlank()) {
+                                Text(
+                                    text = item.subtitle,
+                                    style = MiuixTheme.textStyles.footnote2,
+                                    color = MiuixTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                        Text(
+                            text = ">",
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.outline
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class MenuItem(
+    val icon: String,
+    val title: String,
+    val subtitle: String,
+    val onClick: () -> Unit
+)
