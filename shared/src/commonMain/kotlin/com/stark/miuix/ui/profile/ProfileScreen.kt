@@ -368,14 +368,14 @@ private fun FeatureGrid(
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
     ) {
         FeatureCard(
-            icon = "▶",
+            icon = IconRank,
             title = "视频源管理",
             subtitle = "添加 / 切换视频源",
             modifier = Modifier.weight(1f),
             onClick = onNavigateToSourceManage
         )
         FeatureCard(
-            icon = "◐",
+            icon = IconSettings,
             title = "主题切换",
             subtitle = "选择亮色或暗色",
             modifier = Modifier.weight(1f),
@@ -386,7 +386,7 @@ private fun FeatureGrid(
 
 @Composable
 private fun FeatureCard(
-    icon: String,
+    icon: ImageVector,
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
@@ -400,11 +400,11 @@ private fun FeatureCard(
             modifier = Modifier.padding(DesignTokens.spacingMd),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = icon,
-                style = MiuixTheme.textStyles.body1,
-                color = DesignTokens.brandBlue,
-                modifier = Modifier.width(28.dp)
+            androidx.compose.foundation.Image(
+                painter = rememberVectorPainter(icon),
+                contentDescription = title,
+                colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+                modifier = Modifier.size(20.dp).width(28.dp)
             )
             Column {
                 Text(
