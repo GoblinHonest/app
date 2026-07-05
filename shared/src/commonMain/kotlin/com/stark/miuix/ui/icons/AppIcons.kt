@@ -539,3 +539,96 @@ val IconFloating: ImageVector
         // 内嵌小窗
         moveTo(13f, 12f); lineTo(19f, 12f); lineTo(19f, 17f); lineTo(13f, 17f); close()
     }.build()
+
+/** 书籍/收藏集图标 — book.svg */
+val IconBook: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = 24f, viewportHeight = 24f
+    ).path(
+        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(4f, 19f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 6f, 17f)
+        lineTo(20f, 17f); lineTo(20f, 3f); lineTo(6f, 3f)
+        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 4f, 5f)
+        lineTo(4f, 19f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 6f, 21f); lineTo(20f, 21f)
+        moveTo(9f, 7f); lineTo(15f, 7f); moveTo(9f, 11f); lineTo(13f, 11f)
+    }.build()
+
+/** 退出/登出图标 — out.svg */
+val IconOut: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = 24f, viewportHeight = 24f
+    ).path(
+        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(9f, 21f); lineTo(5f, 21f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 19f)
+        lineTo(3f, 5f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 3f); lineTo(9f, 3f)
+        moveTo(16f, 17f); lineTo(21f, 12f); lineTo(16f, 7f); moveTo(21f, 12f); lineTo(9f, 12f)
+    }.build()
+
+/** 主题调色盘图标 — paint.svg */
+val IconPaint: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = 24f, viewportHeight = 24f
+    ).path(
+        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 22f); arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 12f)
+        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 22f, 12f)
+        curveTo(22f, 14.2f, 21f, 16f, 19f, 16f); curveTo(17f, 16f, 16f, 14.5f, 17f, 13f)
+        curveTo(18f, 11.5f, 16f, 10f, 14f, 11f)
+        moveTo(7f, 11f); arcTo(1f, 1f, 0f, isMoreThanHalf = true, isPositiveArc = true, 7f, 11.01f)
+        moveTo(10f, 8f); arcTo(1f, 1f, 0f, isMoreThanHalf = true, isPositiveArc = true, 10f, 8.01f)
+    }.build()
+
+/** 福利/礼品图标 — welfare.svg */
+val IconWelfare: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = 24f, viewportHeight = 24f
+    ).path(
+        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(20f, 12f); lineTo(20f, 22f); lineTo(4f, 22f); lineTo(4f, 12f)
+        moveTo(22f, 7f); lineTo(2f, 7f); lineTo(2f, 12f); lineTo(22f, 12f); close()
+        moveTo(12f, 22f); lineTo(12f, 7f)
+        moveTo(12f, 7f); curveTo(12f, 7f, 9f, 3f, 7f, 3f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 9f, 7f)
+        moveTo(12f, 7f); curveTo(12f, 7f, 15f, 3f, 17f, 3f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 15f, 7f)
+    }.build()
+
+/** 周历图标 — week.svg */
+val IconWeek: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = 24f, viewportHeight = 24f
+    ).path(
+        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(3f, 4f); lineTo(21f, 4f); lineTo(21f, 20f); lineTo(3f, 20f); close()
+        moveTo(16f, 2f); lineTo(16f, 6f); moveTo(8f, 2f); lineTo(8f, 6f)
+        moveTo(3f, 10f); lineTo(21f, 10f)
+        moveTo(7f, 14f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 7f, 14.01f)
+        moveTo(12f, 14f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 14.01f)
+        moveTo(17f, 14f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 17f, 14.01f)
+    }.build()
+
+/** 上下交换图标 — up2down.svg */
+val IconSwap: ImageVector
+    get() = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp,
+        viewportWidth = 24f, viewportHeight = 24f
+    ).path(
+        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(17f, 4f); lineTo(17f, 20f); moveTo(13f, 16f); lineTo(17f, 20f); lineTo(21f, 16f)
+        moveTo(7f, 20f); lineTo(7f, 4f); moveTo(3f, 8f); lineTo(7f, 4f); lineTo(11f, 8f)
+    }.build()
