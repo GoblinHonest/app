@@ -73,8 +73,9 @@ fun ProfileScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             .windowInsetsPadding(WindowInsets.statusBars),
-        contentPadding = PaddingValues(bottom = 88.dp) // 底栏高度 + 安全区
+        contentPadding = PaddingValues(bottom = 88.dp)
     ) {
         // 1. 用户信息
         item {
@@ -127,12 +128,13 @@ fun ProfileScreen(
     }
 }
 
-/** 用户信息区 */
+/** 用户信息区 — 白色背景卡片 */
 @Composable
 private fun UserHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MiuixTheme.colorScheme.surface)
             .padding(
                 horizontal = DesignTokens.screenPadding,
                 vertical = DesignTokens.spacingXl
