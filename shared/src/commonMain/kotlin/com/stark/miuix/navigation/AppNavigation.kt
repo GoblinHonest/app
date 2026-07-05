@@ -91,7 +91,11 @@ fun AppNavigation(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 导航内容区域（全屏）
+        // 导航内容区域（底部留空给悬浮底栏）
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = if (isMainTab) DesignTokens.bottomBarHeight else 0.dp)
+        ) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home,
@@ -205,6 +209,7 @@ fun AppNavigation(
                     )
                 }
             }
+        }
 
         // 底部导航栏 — 悬浮玻璃效果
         if (isMainTab) {
