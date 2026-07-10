@@ -12,7 +12,16 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-actual fun InlineVideoPlayer(url: String, title: String, modifier: Modifier, onRequestFullscreen: () -> Unit) {
+actual fun InlineVideoPlayer(
+    url: String,
+    title: String,
+    modifier: Modifier,
+    onRequestFullscreen: () -> Unit,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onPositionChanged: (Long) -> Unit,
+    isFullscreen: Boolean
+) {
     Box(modifier = modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black), contentAlignment = Alignment.Center) {
         Text(text = title, style = MiuixTheme.textStyles.body2, color = Color.White)
     }

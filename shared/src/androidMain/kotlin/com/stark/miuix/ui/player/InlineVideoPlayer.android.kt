@@ -1,6 +1,11 @@
+/*
+ * Copyright 2024 Stark Industries
+ *
+ * Android 内嵌迷你播放器 — 共享 PlayerStore 中的 ExoPlayer
+ * 全屏切换时不释放播放器，由 FullscreenPlayerOverlay 叠加控件
+ */
 package com.stark.miuix.ui.player
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -8,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,14 +31,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.stark.miuix.ui.icons.IconFullscreen
@@ -40,166 +46,162 @@ import com.stark.miuix.ui.icons.IconPause
 import com.stark.miuix.ui.icons.IconPlay
 import com.stark.miuix.util.VideoPlayerState
 import kotlinx.coroutines.delay
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * Android 内嵌迷你播放器 — 不强制横屏，显示在详情页顶部
- *
- * 提供：播放/暂停、进度条（可点击跳进度）、全屏按钮
- */
 @Composable
 actual fun InlineVideoPlayer(
     url: String,
     title: String,
     modifier: Modifier,
-    onRequestFullscreen: () -> Unit
+    onRequestFullscreen: () -> Unit,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onPositionChanged: (Long) -> Unit,
+    isFullscreen: Boolean
 ) {
     val context = LocalContext.current
 
     val exoPlayer = remember(url) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(url))
-            prepare()
-            playWhenReady = true
+        PlayerStore.getOrCreate(context, url).also {
+            PlayerStore.currentUrl = url
+            PlayerStore.savedTitle = title
         }
     }
 
-    var isPlaying by remember { mutableStateOf(true) }
+    var isPlaying by remember { mutableStateOf(false) }
     var currentPosition by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(1L) }
+    var isBuffering by remember { mutableStateOf(true) }
 
-    // DisposableEffect(exoPlayer) 確保 URL 變化時舊 ExoPlayer 正確釋放
     DisposableEffect(exoPlayer) {
-        VideoPlayerState.isPlaying = true
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                isBuffering = state == Player.STATE_BUFFERING
+            }
+            override fun onIsPlayingChanged(playing: Boolean) {
+                isPlaying = playing
+                PlayerStore.isPlaying = playing
+                VideoPlayerState.isPlaying = playing
+            }
+            override fun onPlayerError(error: PlaybackException) {
+                isBuffering = false
+            }
+        }
+        exoPlayer.addListener(listener)
+        VideoPlayerState.isPlaying = false
         onDispose {
-            VideoPlayerState.isPlaying = false
-            exoPlayer.release()
+            exoPlayer.removeListener(listener)
+            PlayerStore.savedPosition = exoPlayer.currentPosition
+            PlayerStore.isPlaying = false
         }
     }
 
     LaunchedEffect(Unit) {
         while (true) {
-            currentPosition = exoPlayer.currentPosition
-            duration = exoPlayer.duration.coerceAtLeast(1L)
-            isPlaying = exoPlayer.isPlaying
-            VideoPlayerState.isPlaying = exoPlayer.isPlaying
+            if (!isLoading && errorMessage == null) {
+                currentPosition = exoPlayer.currentPosition
+                duration = exoPlayer.duration.coerceAtLeast(1L)
+                onPositionChanged(currentPosition)
+            }
             delay(500)
         }
     }
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .then(if (isFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth().aspectRatio(16f / 9f))
             .background(Color.Black)
     ) {
-        // ExoPlayer 视图
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("正在解析播放地址...", style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.7f))
+                }
+            }
+            return@Box
+        }
+
+        if (errorMessage != null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(errorMessage, style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.8f))
+            }
+            return@Box
+        }
+
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
-                    setOnClickListener {
-                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                        isPlaying = exoPlayer.isPlaying
-                    }
                 }
             },
+            update = { view -> if (view.player != exoPlayer) view.player = exoPlayer },
             modifier = Modifier.fillMaxSize()
         )
 
-        // 底部控制层
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                    )
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        if (isBuffering && !isFullscreen) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(modifier = Modifier.size(36.dp))
+            }
+        }
+
+        if (!isFullscreen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                // 播放/暂停
-                androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
-                        if (isPlaying) IconPause else IconPlay
-                    ),
-                    contentDescription = if (isPlaying) "暂停" else "播放",
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
-                    modifier = Modifier.size(24.dp).clickable {
-                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                    }
-                )
-
-                // 当前时间
-                Text(
-                    text = formatInlineTime(currentPosition),
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-
-                // 可点击进度条
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(16.dp)
-                        .pointerInput(duration) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(if (isPlaying) IconPause else IconPlay),
+                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
+                        modifier = Modifier.size(24.dp).clickable {
+                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                        }
+                    )
+                    Text(fmt(currentPosition), style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.9f))
+                    BoxWithConstraints(
+                        modifier = Modifier.weight(1f).height(16.dp).pointerInput(duration) {
                             detectTapGestures { offset ->
+                                val wasPlaying = exoPlayer.isPlaying
                                 val fraction = (offset.x / size.width).coerceIn(0f, 1f)
                                 exoPlayer.seekTo((fraction * duration).toLong())
+                                if (wasPlaying) exoPlayer.play()
                             }
                         },
-                    contentAlignment = Alignment.Center
-                ) {
-                    val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
-                    val barWidth = maxWidth
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(2.dp)
-                            .background(Color.White.copy(alpha = 0.3f), RoundedCornerShape(1.dp))
-                    )
-                    Box(
-                        modifier = Modifier.fillMaxWidth(progress).height(2.dp)
-                            .background(Color.White, RoundedCornerShape(1.dp))
-                            .align(Alignment.CenterStart)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = (barWidth * progress).coerceAtMost(barWidth - 4.dp))
-                            .size(8.dp)
-                            .background(Color.White, RoundedCornerShape(50))
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
+                        val barWidth = maxWidth
+                        Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.3f), RoundedCornerShape(1.dp)))
+                        Box(modifier = Modifier.fillMaxWidth(progress).height(2.dp).background(Color.White, RoundedCornerShape(1.dp)).align(Alignment.CenterStart))
+                        Box(modifier = Modifier.align(Alignment.CenterStart).padding(start = (barWidth * progress).coerceAtMost(barWidth - 4.dp)).size(8.dp).background(Color.White, RoundedCornerShape(50)))
+                    }
+                    Text(fmt(duration), style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.6f))
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFullscreen),
+                        contentDescription = "全屏",
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
+                        modifier = Modifier.size(20.dp).clickable(onClick = onRequestFullscreen)
                     )
                 }
-
-                // 总时长
-                Text(
-                    text = formatInlineTime(duration),
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = Color.White.copy(alpha = 0.6f)
-                )
-
-                // 全屏按钮
-                androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFullscreen),
-                    contentDescription = "全屏",
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
-                    modifier = Modifier.size(20.dp).clickable(onClick = onRequestFullscreen)
-                )
             }
         }
     }
 }
 
-private fun formatInlineTime(ms: Long): String {
-    val totalSec = ms / 1000
-    val min = totalSec / 60
-    val sec = totalSec % 60
-    return "%d:%02d".format(min, sec)
+private fun fmt(ms: Long): String {
+    val s = ms / 1000
+    return "%d:%02d".format(s / 60, s % 60)
 }

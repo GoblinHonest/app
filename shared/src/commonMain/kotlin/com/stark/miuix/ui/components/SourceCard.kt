@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.VideoSource
+import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.StringUtils
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Switch
@@ -61,7 +62,7 @@ fun SourceCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        cornerRadius = 12.dp
+        cornerRadius = DesignTokens.radiusCard
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -126,7 +127,7 @@ fun SourceCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 8.dp
+                    cornerRadius = DesignTokens.radiusCard
                 ) {
                     Row(
                         modifier = Modifier

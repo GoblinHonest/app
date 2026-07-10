@@ -81,7 +81,7 @@ fun VideoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(DesignTokens.coverAspectRatio)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(DesignTokens.radiusCard))
                 .background(MiuixTheme.colorScheme.surfaceVariant)
         ) {
             val coverUrl = searchResult.cover

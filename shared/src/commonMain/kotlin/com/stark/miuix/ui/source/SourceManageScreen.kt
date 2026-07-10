@@ -129,7 +129,7 @@ fun SourceManageScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(DesignTokens.radiusMd))
                                     .background(
                                         if (isSelected) DesignTokens.brandBlue
                                         else MiuixTheme.colorScheme.surfaceVariant

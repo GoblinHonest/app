@@ -36,5 +36,6 @@ import androidx.compose.ui.Modifier
 expect fun VideoPlayer(
     url: String,
     title: String,
-    modifier: Modifier
+    modifier: Modifier,
+    startPosition: Long = 0L
 )

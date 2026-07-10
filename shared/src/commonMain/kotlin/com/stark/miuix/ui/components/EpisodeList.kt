@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.Episode
+import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -54,7 +55,7 @@ fun EpisodeList(
         episodes.forEachIndexed { index, episode ->
             Card(
                 modifier = Modifier.clickable { onEpisodeClick(episode) },
-                cornerRadius = 10.dp
+                cornerRadius = DesignTokens.radiusCard
             ) {
                 Text(
                     text = episode.name.ifBlank { "第 ${index + 1} 集" },

@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import com.stark.miuix.ui.icons.IconBack
+import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
@@ -147,7 +148,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                        cornerRadius = 8.dp
+                        cornerRadius = DesignTokens.radiusCard
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(
@@ -192,7 +193,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
-                    cornerRadius = 12.dp
+                    cornerRadius = DesignTokens.radiusCard
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
@@ -240,7 +241,7 @@ private fun SettingsItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
-        cornerRadius = 12.dp
+        cornerRadius = DesignTokens.radiusCard
     ) {
         Row(
             modifier = Modifier
@@ -288,7 +289,7 @@ private fun SettingsSwitchItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        cornerRadius = 12.dp
+        cornerRadius = DesignTokens.radiusCard
     ) {
         Row(
             modifier = Modifier

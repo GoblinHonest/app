@@ -20,6 +20,7 @@ object DesignTokens {
     val spacing2xl = 32.dp
     val radiusSm = 6.dp
     val radiusMd = 10.dp
+    val radiusCard = 12.dp   // 统一卡片圆角
     val radiusLg = 14.dp
     val radiusXl = 20.dp
     val radiusPill = 100.dp

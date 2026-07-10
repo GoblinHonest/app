@@ -183,8 +183,8 @@ fun AppNavigation(
                         videoRepository = videoRepository,
                         sourceRepository = sourceRepository,
                         userDataRepository = userDataRepository,
-                        onNavigateToPlayer = { sourceName, episodeUrl, title ->
-                            navController.navigate(Screen.Player(sourceName, UrlEncoder.encode(episodeUrl), title))
+                        onNavigateToPlayer = { sourceName, episodeUrl, title, startPosition ->
+                            navController.navigate(Screen.Player(sourceName, UrlEncoder.encode(episodeUrl), title, startPosition))
                         },
                         onNavigateBack = { navController.popBackStack() }
                     )
@@ -196,6 +196,7 @@ fun AppNavigation(
                         sourceName = args.sourceName,
                         episodeUrl = args.episodeUrl,
                         title = args.title,
+                        startPosition = args.startPosition,
                         videoRepository = videoRepository,
                         sourceRepository = sourceRepository,
                         userDataRepository = userDataRepository,

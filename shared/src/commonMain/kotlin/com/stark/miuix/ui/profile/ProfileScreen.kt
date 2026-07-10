@@ -33,8 +33,6 @@ import com.stark.miuix.ui.icons.IconRank
 import com.stark.miuix.ui.icons.IconSettings
 import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.icons.IconStar
-import com.stark.miuix.ui.icons.IconWeek
-import com.stark.miuix.ui.icons.IconWelfare
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -440,7 +438,6 @@ private fun ContinueWatching(item: WatchHistory, onClick: (WatchHistory) -> Unit
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = DesignTokens.screenPadding)
             .clickable { onClick(item) },
         cornerRadius = DesignTokens.radiusMd
     ) {
@@ -513,7 +510,7 @@ private fun FeatureGrid(
     onNavigateToSourceManage: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    // 2×2 功能网格 — 对标逆向APK: welfare/week/book/paint
+    // 2×2 功能网格 — 只保留视频源管理和主题切换
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -537,26 +534,6 @@ private fun FeatureGrid(
                 subtitle = "选择亮色或暗色",
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToSettings
-            )
-        }
-        // 第二行 — 逆向APK: welfare.svg / week.svg
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
-        ) {
-            FeatureCard(
-                icon = IconWelfare,
-                title = "福利中心",
-                subtitle = "每日签到领奖励",
-                modifier = Modifier.weight(1f),
-                onClick = {}
-            )
-            FeatureCard(
-                icon = IconWeek,
-                title = "本周排期",
-                subtitle = "追番更新时间表",
-                modifier = Modifier.weight(1f),
-                onClick = {}
             )
         }
     }

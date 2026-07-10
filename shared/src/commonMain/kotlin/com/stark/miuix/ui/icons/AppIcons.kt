@@ -19,8 +19,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-/** 统一线条风格 */
-private val stroke = Stroke(width = 1.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+/** 统一线条风格 — 加粗到 2.0 让图标更圆润可爱 */
+private val stroke = Stroke(width = 2.0f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 private val vbSize = 24f
 
 /** 首页图标 — 房屋轮廓 */
@@ -30,7 +30,7 @@ val IconHome: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -53,7 +53,7 @@ val IconSearch: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -73,7 +73,7 @@ val IconUser: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -94,8 +94,8 @@ val IconPlay: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -108,7 +108,7 @@ val IconPause: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
+        stroke = SolidColor(Color.Black),
         strokeLineWidth = 2f,
         strokeLineCap = StrokeCap.Round
     ) {
@@ -122,8 +122,8 @@ val IconNext: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -137,8 +137,8 @@ val IconFullscreen: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 左上角
@@ -157,8 +157,8 @@ val IconLock: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -178,8 +178,8 @@ val IconDanmaku: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 3条滚动线
@@ -195,7 +195,7 @@ val IconDownload: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -211,7 +211,7 @@ val IconShare: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -240,7 +240,7 @@ val IconLike: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -258,7 +258,7 @@ val IconStar: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -275,7 +275,7 @@ val IconChat: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -295,7 +295,7 @@ val IconSettings: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 中心圆
@@ -321,7 +321,7 @@ val IconHistory: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 圆
@@ -340,7 +340,7 @@ val IconRank: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -358,8 +358,8 @@ val IconDanmakuOff: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 3条线 + 删除斜线
@@ -377,8 +377,8 @@ val IconExitFullscreen: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 四角向内
@@ -395,7 +395,7 @@ val IconCancel: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         moveTo(18f, 6f); lineTo(6f, 18f)
@@ -408,8 +408,8 @@ val IconMore: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ) {
         // 三个点
@@ -424,8 +424,8 @@ val IconHD: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -446,7 +446,7 @@ val IconFeedback: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -466,7 +466,7 @@ val IconMail: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -488,8 +488,8 @@ val IconBack: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -504,7 +504,7 @@ val IconNotice: ImageVector
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 1.5f,
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -521,8 +521,8 @@ val IconFloating: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = vbSize, viewportHeight = vbSize
     ).path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ) {
@@ -546,7 +546,7 @@ val IconBook: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
     ) {
         moveTo(4f, 19f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 6f, 17f)
@@ -562,7 +562,7 @@ val IconOut: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
     ) {
         moveTo(9f, 21f); lineTo(5f, 21f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 19f)
@@ -576,7 +576,7 @@ val IconPaint: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
     ) {
         moveTo(12f, 22f); arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 12f)
@@ -593,7 +593,7 @@ val IconWelfare: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
     ) {
         moveTo(20f, 12f); lineTo(20f, 22f); lineTo(4f, 22f); lineTo(4f, 12f)
@@ -609,7 +609,7 @@ val IconWeek: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
     ) {
         moveTo(3f, 4f); lineTo(21f, 4f); lineTo(21f, 20f); lineTo(3f, 20f); close()
@@ -626,7 +626,7 @@ val IconSwap: ImageVector
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
+        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
     ) {
         moveTo(17f, 4f); lineTo(17f, 20f); moveTo(13f, 16f); lineTo(17f, 20f); lineTo(21f, 16f)

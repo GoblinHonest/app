@@ -64,7 +64,8 @@ sealed class Screen {
     data class Player(
         val sourceName: String,
         val episodeUrl: String,
-        val title: String = ""
+        val title: String = "",
+        val startPosition: Long = 0L
     ) : Screen()
 
     /** 视频源管理 */

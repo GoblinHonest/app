@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -58,6 +59,7 @@ import com.stark.miuix.ui.icons.IconMore
 import com.stark.miuix.ui.icons.IconNext
 import com.stark.miuix.ui.icons.IconPause
 import com.stark.miuix.ui.icons.IconPlay
+import com.stark.miuix.ui.player.PlayerStore
 import kotlinx.coroutines.delay
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -86,20 +88,21 @@ import kotlin.math.abs
 actual fun VideoPlayer(
     url: String,
     title: String,
-    modifier: Modifier
+    modifier: Modifier,
+    startPosition: Long
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
 
+    // 从共享存储池获取 ExoPlayer（与内嵌播放器共用同一个）
     val exoPlayer = remember(url) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(url))
-            prepare()
-            playWhenReady = true
+        PlayerStore.getOrCreate(context, url).also {
+            PlayerStore.currentUrl = url
+            PlayerStore.savedTitle = title
         }
     }
 
-    // HyperOS L1 适配：MediaSession — 锁屏/通知栏/蓝牙耳机播控
+    // MediaSession — 锁屏/通知栏/蓝牙耳机播控
     val mediaSession = remember(context, exoPlayer) {
         androidx.media3.session.MediaSession.Builder(context, exoPlayer)
             .setId("cinehub_player")
@@ -112,8 +115,8 @@ actual fun VideoPlayer(
     var duration by remember { mutableLongStateOf(1L) }
     var gestureText by remember { mutableStateOf("") }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
-    var dmEnabled by remember { mutableStateOf(false) }   // 弹幕开关 (逆向: dm_open/dm_close)
-    var isLocked by remember { mutableStateOf(false) }    // 锁屏 (逆向: lock/unlock)
+    var dmEnabled by remember { mutableStateOf(false) }
+    var isLocked by remember { mutableStateOf(false) }
 
     // 全屏 + 隐藏系统栏
     DisposableEffect(Unit) {
@@ -123,9 +126,9 @@ actual fun VideoPlayer(
             c.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         onDispose {
-            VideoPlayerState.isPlaying = false  // 退出播放，禁止 PiP 触发
+            VideoPlayerState.isPlaying = false
             mediaSession.release()
-            exoPlayer.release()
+            // 不释放 ExoPlayer！返回内嵌播放器时继续用
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             activity?.window?.decorView?.windowInsetsController?.show(WindowInsets.Type.systemBars())
         }
@@ -157,10 +160,10 @@ actual fun VideoPlayer(
         }
     }
 
-    // 3 秒自动隐藏控制层
+    // 5 秒自动隐藏控制层
     LaunchedEffect(showControls) {
-        if (showControls) {
-            delay(4000)
+        if (showControls && !isLocked) {
+            delay(5000)
             showControls = false
         }
     }
@@ -301,6 +304,7 @@ actual fun VideoPlayer(
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconBack),
                         contentDescription = "返回",
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                         modifier = Modifier.size(22.dp).clickable { activity?.onBackPressed() }
                     )
                     Text(
@@ -313,7 +317,7 @@ actual fun VideoPlayer(
                     // 倍速只在底部控制栏显示，顶部仅保留标题，避免重复
                 }
 
-                // 右侧：锁屏按钮（设计图右侧圆形按钮）
+                // 右侧：锁屏 / PiP 按钮
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
@@ -323,10 +327,9 @@ actual fun VideoPlayer(
                         .clickable { isLocked = !isLocked },
                     contentAlignment = Alignment.Center
                 ) {
-                    // lock/unlock SVG — 修复 Bug：两分支相同
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(
-                            if (isLocked) IconLock else com.stark.miuix.ui.icons.IconFloating
+                            if (isLocked) com.stark.miuix.ui.icons.IconFloating else IconLock
                         ),
                         contentDescription = if (isLocked) "解锁" else "锁屏",
                         modifier = Modifier.size(20.dp),
@@ -434,6 +437,7 @@ actual fun VideoPlayer(
                                 if (isPlaying) IconPause else IconPlay
                             ),
                             contentDescription = if (isPlaying) "暂停" else "播放",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                             modifier = Modifier.size(32.dp).clickable {
                                 if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                             }.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -442,6 +446,7 @@ actual fun VideoPlayer(
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconNext),
                             contentDescription = "下一集",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                             modifier = Modifier.size(32.dp).padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                         // 弹幕 SVG (逆向: dm_open.svg / dm_close.svg)
@@ -467,6 +472,7 @@ actual fun VideoPlayer(
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconHD),
                             contentDescription = "超分",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                             modifier = Modifier.size(28.dp).padding(horizontal = 6.dp)
                         )
                         // 倍速文字（保持文字，逆向APK也用文字标签）
@@ -488,12 +494,14 @@ actual fun VideoPlayer(
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFloating),
                             contentDescription = "悬浮",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                             modifier = Modifier.size(28.dp).padding(horizontal = 6.dp)
                         )
                         // 全屏 SVG (逆向: full.svg)
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(IconFullscreen),
                             contentDescription = "全屏",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                             modifier = Modifier.size(28.dp).padding(start = 6.dp)
                         )
                     }

@@ -4,21 +4,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * 内嵌迷你播放器（expect 声明）
+ * 统一视频播放器（expect 声明）
  *
- * 在详情页顶部以 16:9 小窗形式播放视频，
- * 提供基础播放控制 + 全屏按钮。
- * 不强制横屏，不隐藏系统栏。
- *
- * @param url 视频地址
- * @param title 视频标题
- * @param modifier Modifier
- * @param onRequestFullscreen 点击全屏时回调，由外层导航到全屏 PlayerScreen
+ * - isExpanded=false → 16:9 小窗 + 基础控制
+ * - isExpanded=true  → 全屏放大 + gesture controls 叠加层
+ * - 切换时共用同一 ExoPlayer，不重新加载
  */
 @Composable
 expect fun InlineVideoPlayer(
     url: String,
     title: String,
     modifier: Modifier = Modifier,
-    onRequestFullscreen: () -> Unit
+    onRequestFullscreen: () -> Unit,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onPositionChanged: (Long) -> Unit = {},
+    isFullscreen: Boolean = false
 )

@@ -16,6 +16,7 @@
 
 package com.stark.miuix.ui.components
 
+import com.stark.miuix.ui.theme.DesignTokens
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -101,7 +102,7 @@ private fun ShimmerVideoCardPlaceholder(brush: Brush) {
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(DesignTokens.radiusCard))
                 .background(brush)
         )
         Spacer(modifier = Modifier.height(6.dp))

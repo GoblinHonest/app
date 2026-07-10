@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.UrlEncoder
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
@@ -61,6 +62,7 @@ fun PlayerScreen(
     sourceName: String,
     episodeUrl: String,
     title: String,
+    startPosition: Long,
     videoRepository: VideoRepository,
     sourceRepository: SourceRepository,
     userDataRepository: UserDataRepository,
@@ -149,7 +151,7 @@ fun PlayerScreen(
                                     )
                                 }
                             },
-                            cornerRadius = 10.dp
+                            cornerRadius = DesignTokens.radiusCard
                         ) {
                             Text(
                                 text = "重试",
@@ -164,7 +166,8 @@ fun PlayerScreen(
                     VideoPlayer(
                         url = videoUrl,
                         title = title,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        startPosition = startPosition
                     )
                 }
             }

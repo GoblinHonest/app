@@ -1,89 +1,92 @@
 /*
  * Copyright 2024 Stark Industries
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 视频详情页 — 内含小播放器（点全屏原地放大，共用同一个 ExoPlayer）
  */
-
 package com.stark.miuix.ui.detail
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import com.stark.miuix.data.model.Favorite
+import com.stark.miuix.data.model.Video
 import com.stark.miuix.data.model.WatchHistory
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.ui.icons.IconBack
+import com.stark.miuix.ui.icons.IconChat
 import com.stark.miuix.ui.icons.IconDownload
 import com.stark.miuix.ui.icons.IconLike
 import com.stark.miuix.ui.icons.IconRank
 import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.icons.IconStar
-import com.stark.miuix.ui.icons.IconChat
 import com.stark.miuix.ui.player.InlineVideoPlayer
+import com.stark.miuix.ui.player.FullscreenControls
+import com.stark.miuix.ui.player.releaseSharedPlayer
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.UrlEncoder
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import com.stark.miuix.ui.icons.IconBack
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * 视频详情页
- *
- * 沉浸式封面 + 渐变蒙版 + 收藏按钮 + 剧集列表。
- * 进入详情页时自动记录到观看历史。
- */
 @Composable
 fun DetailScreen(
     sourceName: String,
@@ -93,7 +96,7 @@ fun DetailScreen(
     videoRepository: VideoRepository,
     sourceRepository: SourceRepository,
     userDataRepository: UserDataRepository,
-    onNavigateToPlayer: (String, String, String) -> Unit,
+    onNavigateToPlayer: (String, String, String, Long) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val viewModel = remember(videoRepository, sourceRepository) {
@@ -105,309 +108,373 @@ fun DetailScreen(
     val videoId = decodedUrl.hashCode().toString()
     var isFavorite by remember { mutableStateOf(userDataRepository.isFavorite(videoId)) }
     val shareAction = com.stark.miuix.util.rememberShareAction()
+    val coroutineScope = rememberCoroutineScope()
     var descExpanded by remember { mutableStateOf(false) }
     var episodesExpanded by remember { mutableStateOf(false) }
     var selectedEpisodeIndex by remember { mutableStateOf(-1) }
-    var playingEpisodeUrl by remember { mutableStateOf<String?>(null) }
+    var resolvedVideoUrl by remember { mutableStateOf<String?>(null) }
+    var playerLoading by remember { mutableStateOf(false) }
+    var playerError by remember { mutableStateOf<String?>(null) }
+    var inlinePlayerPosition by remember { mutableLongStateOf(0L) }
+    var isPlayerFullscreen by remember { mutableStateOf(false) }
+
+    // 拦截返回键：全屏时先退出全屏，非全屏时释放播放器后返回
+    BackHandler(enabled = true) {
+        if (isPlayerFullscreen) {
+            isPlayerFullscreen = false
+        } else {
+            releaseSharedPlayer()
+            onNavigateBack()
+        }
+    }
 
     LaunchedEffect(detailUrl) {
         viewModel.loadDetail(sourceName, decodedUrl)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = initialTitle.ifBlank { "视频详情" },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    androidx.compose.foundation.Image(painter=rememberVectorPainter(IconBack),contentDescription="返回",colorFilter=ColorFilter.tint(MiuixTheme.colorScheme.onSurface),modifier=androidx.compose.ui.Modifier.size(20.dp))
-                }
-            },
-            actions = {
-                IconButton(onClick = {
-                    shareAction(initialTitle, "$initialTitle\n$detailUrl")
-                }) {
-                    Text("分享", style = MiuixTheme.textStyles.body2)
-                }
-            }
-        )
+    // 播放器退出全屏时释放资源（大播放器借用的情况）
+    LaunchedEffect(isPlayerFullscreen) {
+        if (!isPlayerFullscreen) {
+            // do nothing - player survives
+        }
+    }
 
-        when (val state = uiState) {
-            is DetailUiState.Loading -> {
-                ShimmerVideoGrid(columns = 1, itemCount = 1)
-            }
-
-            is DetailUiState.Success -> {
-                val video = state.video
-
-                // 加载成功后记录观看历史
-                LaunchedEffect(video) {
-                    userDataRepository.addWatchHistory(
-                        WatchHistory(
-                            videoId = videoId,
-                            title = video.title,
-                            cover = video.cover,
-                            sourceName = sourceName,
-                            detailUrl = decodedUrl
-                        )
-                    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (!isPlayerFullscreen) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // 紧凑顶栏
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onNavigateBack) {
+                        Image(painter = rememberVectorPainter(IconBack), contentDescription = "返回",
+                            colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+                            modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { shareAction(initialTitle, "$initialTitle\n$detailUrl") }) {
+                        Text("分享", style = MiuixTheme.textStyles.body2)
+                    }
                 }
 
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    // 顶部：内嵌播放器 OR 封面图
-                    item {
-                        val currentUrl = playingEpisodeUrl
+                when (val state = uiState) {
+                    is DetailUiState.Loading -> {
+                        ShimmerVideoGrid(columns = 1, itemCount = 1)
+                    }
+                    is DetailUiState.Success -> {
+                        val video = state.video
+
+                        LaunchedEffect(video) {
+                            userDataRepository.addWatchHistory(
+                                WatchHistory(videoId = videoId, title = video.title,
+                                    cover = video.cover, sourceName = sourceName, detailUrl = decodedUrl)
+                            )
+                        }
+
+                        val currentUrl = resolvedVideoUrl
                         if (currentUrl != null) {
-                            // 内嵌播放器 — 点击全屏按钮才跳转 PlayerScreen
                             InlineVideoPlayer(
-                                url = currentUrl,
-                                title = video.title,
+                                url = currentUrl, title = video.title,
                                 modifier = Modifier.fillMaxWidth(),
-                                onRequestFullscreen = {
-                                    onNavigateToPlayer(state.currentSource, currentUrl, video.title)
-                                }
+                                onRequestFullscreen = { isPlayerFullscreen = true },
+                                isLoading = playerLoading, errorMessage = playerError,
+                                onPositionChanged = { pos -> inlinePlayerPosition = pos },
+                                isFullscreen = false
                             )
                         } else {
-                            // 封面图 + 渐变蒙版
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(220.dp)
-                                    .background(DesignTokens.videoBackground)
-                            ) {
-                                if (video.cover.isNotBlank() && (video.cover.startsWith("http://") || video.cover.startsWith("https://"))) {
+                            Box(modifier = Modifier.fillMaxWidth().height(220.dp)
+                                .background(DesignTokens.videoBackground)) {
+                                if (video.cover.isNotBlank() &&
+                                    (video.cover.startsWith("http://") || video.cover.startsWith("https://"))) {
                                     val ctx = LocalPlatformContext.current
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(ctx).data(video.cover).build(),
+                                    AsyncImage(model = ImageRequest.Builder(ctx).data(video.cover).build(),
                                         contentDescription = video.title,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                        modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                 }
-                                Box(
-                                    modifier = Modifier.fillMaxSize()
-                                        .background(Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
-                                            startY = 80f
-                                        ))
-                                )
-                                Text(
-                                    text = video.title,
-                                    style = MiuixTheme.textStyles.headline1,
-                                    color = Color.White,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
-                                )
+                                Box(modifier = Modifier.fillMaxSize()
+                                    .background(Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)), startY = 80f)))
+                                Text(text = video.title, style = MiuixTheme.textStyles.headline1, color = Color.White,
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
                             }
                         }
-                    }
 
-                    // 视频信息卡片
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            cornerRadius = 12.dp
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                if (video.status.isNotBlank()) {
-                                    Text(
-                                        text = video.status,
-                                        style = MiuixTheme.textStyles.footnote1,
-                                        color = MiuixTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
-                                if (video.description.isNotBlank()) {
-                                    Text(
-                                        text = video.description,
-                                        style = MiuixTheme.textStyles.body2,
-                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                        maxLines = if (descExpanded) Int.MAX_VALUE else 3,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = if (descExpanded) "收起" else "展开",
-                                        style = MiuixTheme.textStyles.footnote1,
-                                        color = MiuixTheme.colorScheme.primary,
-                                        modifier = Modifier
-                                            .padding(top = 4.dp)
-                                            .clickable { descExpanded = !descExpanded }
-                                    )
-                                }
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item { VideoInfoCard(video) }
+                            if (state.allSources.size > 1) {
+                                item { SourceSelector(state) { name -> viewModel.switchSource(name) } }
                             }
-                        }
-                    }
-
-                    // 播放源选择器（多源时显示）
-                    if (state.allSources.size > 1) {
-                        item {
-                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                Text(
-                                    text = "播放源 (${state.allSources.size})",
-                                    style = MiuixTheme.textStyles.body1,
-                                    color = MiuixTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    state.allSources.keys.forEach { name ->
-                                        val isSelected = name == state.currentSource
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                                                .background(
-                                                    if (isSelected) MiuixTheme.colorScheme.primary
-                                                    else MiuixTheme.colorScheme.surfaceVariant
+                            if (video.episodes.isNotEmpty()) {
+                                item {
+                                    EpisodePreview(video,
+                                        onExpand = { episodesExpanded = true },
+                                        onSelect = { index, episode ->
+                                            selectedEpisodeIndex = index
+                                            playerLoading = true
+                                            playerError = null
+                                            coroutineScope.launch {
+                                                val result = viewModel.getPlayerUrl(state.currentSource, episode.url)
+                                                result.fold(
+                                                    onSuccess = { streamUrl ->
+                                                        resolvedVideoUrl = streamUrl; playerLoading = false
+                                                    },
+                                                    onFailure = { e ->
+                                                        playerLoading = false
+                                                        playerError = e.message ?: "播放地址解析失败"
+                                                    }
                                                 )
-                                                .clickable { viewModel.switchSource(name) }
-                                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                        ) {
-                                            Text(
-                                                text = name,
-                                                style = MiuixTheme.textStyles.body2,
-                                                color = if (isSelected) Color.White
-                                                        else MiuixTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
+                                            }
+                                        })
                                 }
                             }
+                            item { ActionBar(video, userDataRepository, sourceName, videoId, decodedUrl) }
                         }
                     }
-
-                    // 选集区 — FlowRow 网格，支持展开/收起（移除横滑）
-                    if (video.episodes.isNotEmpty()) {
-                        item {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm)
-                            ) {
-                                // 标题行
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = "选集",
-                                        style = MiuixTheme.textStyles.body1,
-                                        color = MiuixTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    val displayCount = if (episodesExpanded) video.episodes.size else minOf(video.episodes.size, 20)
-                                    Text(
-                                        text = if (episodesExpanded) "收起 ∧" else "全 ${video.episodes.size} 集 ∨",
-                                        style = MiuixTheme.textStyles.footnote1,
-                                        color = DesignTokens.brandBlue,
-                                        modifier = Modifier.clickable { episodesExpanded = !episodesExpanded }
-                                            .padding(8.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
-                                // FlowRow 集数网格
-                                @OptIn(ExperimentalLayoutApi::class)
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
-                                    verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
-                                ) {
-                                    val displayEpisodes = if (episodesExpanded) video.episodes
-                                                          else video.episodes.take(20)
-                                    displayEpisodes.forEachIndexed { index, episode ->
-                                        val isSelected = index == selectedEpisodeIndex
-                                        Box(
-                                            modifier = Modifier
-                                                .widthIn(min = 52.dp)
-                                                .clip(RoundedCornerShape(DesignTokens.radiusSm))
-                                                .background(
-                                                    if (isSelected) DesignTokens.brandBlue
-                                                    else MiuixTheme.colorScheme.surfaceVariant
-                                                )
-                                                .clickable {
-                                                    selectedEpisodeIndex = index
-                                                    playingEpisodeUrl = episode.url  // 触发内嵌播放
-                                                }
-                                                .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = episode.name.ifBlank { "${index + 1}" },
-                                                style = MiuixTheme.textStyles.body2,
-                                                color = if (isSelected) Color.White
-                                                        else MiuixTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 底部操作栏（对标设计图：收藏/换源/分享）
-                    item {
-                        Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            // 收藏按钮 — 修复：调用正确的 toggleFavorite
-                            ActionButton(
-                                icon = if (isFavorite) IconStar else IconLike,
-                                label = if (isFavorite) "已收藏" else "收藏",
-                                tint = if (isFavorite) DesignTokens.brandBlue else MiuixTheme.colorScheme.onSurface
-                            ) {
-                                val fav = Favorite(
-                                    videoId = videoId, title = video.title,
-                                    cover = video.cover, sourceName = sourceName, detailUrl = decodedUrl
-                                )
-                                isFavorite = userDataRepository.toggleFavorite(fav)
-                            }
-                            ActionButton(IconChat, "评论") {}
-                            ActionButton(IconShare, "分享") { shareAction(video.title, "${video.title}\n$decodedUrl") }
-                            ActionButton(IconDownload, "缓存") {}
-                            ActionButton(IconRank, "排行") {}
-                        }
-                        Spacer(modifier = Modifier.height(DesignTokens.spacingXl))
+                    is DetailUiState.Error -> {
+                        ErrorStateView(message = state.message,
+                            onRetry = { viewModel.loadDetail(sourceName, decodedUrl) })
                     }
                 }
             }
+        } else {
+            val currentUrl = resolvedVideoUrl
+            if (currentUrl != null) {
+                val video = (uiState as? DetailUiState.Success)?.video
+                Box(modifier = Modifier.fillMaxSize()) {
+                    InlineVideoPlayer(
+                        url = currentUrl, title = video?.title ?: initialTitle,
+                        modifier = Modifier.fillMaxSize(),
+                        onRequestFullscreen = {}, isLoading = false, errorMessage = null,
+                        onPositionChanged = {}, isFullscreen = true
+                    )
+                    FullscreenControls(
+                        url = currentUrl, title = video?.title ?: initialTitle,
+                        onExitFullscreen = { isPlayerFullscreen = false }
+                    )
+                }
+            }
+        }
 
-            is DetailUiState.Error -> {
-                ErrorStateView(
-                    message = state.message,
-                    onRetry = { viewModel.loadDetail(sourceName, decodedUrl) }
-                )
+        // 选集 Bottom Sheet
+        if (!isPlayerFullscreen) {
+            val successState = uiState as? DetailUiState.Success
+            val sheetVideo = successState?.video
+            EpisodeSheetOverlay(
+                visible = episodesExpanded && sheetVideo != null,
+                video = sheetVideo,
+                selectedEpisodeIndex = selectedEpisodeIndex,
+                onDismiss = { episodesExpanded = false },
+                onSelectEpisode = { index, episode ->
+                    selectedEpisodeIndex = index
+                    episodesExpanded = false
+                    playerLoading = true
+                    playerError = null
+                    coroutineScope.launch {
+                        val src = (uiState as? DetailUiState.Success)?.currentSource ?: ""
+                        val result = viewModel.getPlayerUrl(src, episode.url)
+                        result.fold(
+                            onSuccess = { streamUrl -> resolvedVideoUrl = streamUrl; playerLoading = false },
+                            onFailure = { e -> playerLoading = false; playerError = e.message ?: "播放地址解析失败" }
+                        )
+                    }
+                }
+            )
+        }
+    }
+}
+
+// ========== Helper Composables (file-level) ==========
+
+@Composable
+private fun VideoInfoCard(video: Video) {
+    var descExpanded by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        cornerRadius = DesignTokens.radiusCard
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = video.title, style = MiuixTheme.textStyles.headline1,
+                color = MiuixTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (video.title.isNotBlank()) Spacer(modifier = Modifier.height(8.dp))
+            if (video.status.isNotBlank()) {
+                Text(text = video.status, style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            if (video.description.isNotBlank()) {
+                Column {
+                    Text(text = video.description, style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        maxLines = if (descExpanded) Int.MAX_VALUE else 3, overflow = TextOverflow.Ellipsis)
+                    val showExpand = video.description.length > 80
+                    AnimatedVisibility(
+                        visible = showExpand || descExpanded,
+                        enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 2 },
+                        exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { it / 2 }
+                    ) {
+                        Text(text = if (descExpanded) "收起" else "展开",
+                            style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 4.dp).clickable { descExpanded = !descExpanded })
+                    }
+                }
             }
         }
     }
 }
 
-/** 底部操作按钮 — 44dp 最小触控区域 */
+@Composable
+private fun SourceSelector(state: DetailUiState.Success, onSwitch: (String) -> Unit) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(text = "播放源 (${state.allSources.size})", style = MiuixTheme.textStyles.body1,
+            color = MiuixTheme.colorScheme.onSurface)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            state.allSources.keys.forEach { name ->
+                val isSelected = name == state.currentSource
+                Box(modifier = Modifier.clip(RoundedCornerShape(DesignTokens.radiusXl))
+                    .background(if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceVariant)
+                    .clickable { onSwitch(name) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(text = name, style = MiuixTheme.textStyles.body2,
+                        color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EpisodePreview(video: Video, onExpand: () -> Unit, onSelect: (Int, com.stark.miuix.data.model.Episode) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()
+        .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "选集", style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            Text(text = "全 ${video.episodes.size} 集", style = MiuixTheme.textStyles.footnote1,
+                color = DesignTokens.brandBlue,
+                modifier = Modifier.clickable(onClick = onExpand).padding(8.dp))
+        }
+        Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
+            verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)) {
+            video.episodes.take(12).forEachIndexed { index, episode ->
+                EpisodeChip(index, episode.name, false) { onSelect(index, episode) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionBar(video: Video, userDataRepository: UserDataRepository, sourceName: String, videoId: String, decodedUrl: String) {
+    val shareAction = com.stark.miuix.util.rememberShareAction()
+    var isFavorite by remember { mutableStateOf(userDataRepository.isFavorite(videoId)) }
+    Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm),
+        horizontalArrangement = Arrangement.SpaceEvenly) {
+        ActionButton(
+            icon = if (isFavorite) IconStar else IconLike,
+            label = if (isFavorite) "已收藏" else "收藏",
+            tint = if (isFavorite) DesignTokens.brandBlue else MiuixTheme.colorScheme.onSurface
+        ) {
+            val fav = Favorite(videoId = videoId, title = video.title, cover = video.cover,
+                sourceName = sourceName, detailUrl = decodedUrl)
+            isFavorite = userDataRepository.toggleFavorite(fav)
+        }
+        ActionButton(IconChat, "评论") {}
+        ActionButton(IconShare, "分享") { shareAction(video.title, "${video.title}\n$decodedUrl") }
+        ActionButton(IconDownload, "缓存") {}
+        ActionButton(IconRank, "排行") {}
+    }
+    Spacer(modifier = Modifier.height(DesignTokens.spacingXl))
+}
+
+@Composable
+private fun EpisodeSheetOverlay(visible: Boolean, video: Video?, selectedEpisodeIndex: Int, onDismiss: () -> Unit, onSelectEpisode: (Int, com.stark.miuix.data.model.Episode) -> Unit) {
+    AnimatedVisibility(
+        visible = visible && video != null,
+        enter = slideInVertically(tween(300)) { it } + fadeIn(tween(200)),
+        exit = slideOutVertically(tween(250)) { it } + fadeOut(tween(200)),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+                .clickable(onClick = onDismiss))
+            val density = LocalDensity.current
+            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+                .heightIn(max = with(density) { (LocalConfiguration.current.screenHeightDp * 0.65f).dp })
+                .clip(RoundedCornerShape(topStart = DesignTokens.radiusXl, topEnd = DesignTokens.radiusXl))
+                .background(MiuixTheme.colorScheme.surface).navigationBarsPadding()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingMd)) {
+                        Box(modifier = Modifier.width(32.dp).padding(bottom = DesignTokens.spacingSm).height(4.dp)
+                            .align(Alignment.CenterHorizontally)
+                            .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(2.dp)))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text(text = "选集 (${video?.episodes?.size ?: 0})", style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                            Text(text = "收起", style = MiuixTheme.textStyles.footnote1, color = DesignTokens.brandBlue,
+                                modifier = Modifier.clickable(onClick = onDismiss).padding(8.dp))
+                        }
+                    }
+                    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+                    val cols = ((screenWidthDp - 32 + 8) / 72).coerceIn(3, 6)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(cols),
+                        modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                            .padding(horizontal = DesignTokens.screenPadding),
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
+                        verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+                    ) {
+                        itemsIndexed(video?.episodes ?: emptyList()) { index, episode ->
+                            EpisodeChip(index, episode.name, isSelected = index == selectedEpisodeIndex) {
+                                onSelectEpisode(index, episode)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(DesignTokens.spacingLg))
+                }
+            }
+        }
+    }
+}
+
+private fun episodesUrl(index: Int, video: Video): String = video.episodes.getOrNull(index)?.url ?: ""
+
+@Composable
+private fun EpisodeChip(index: Int, name: String, isSelected: Boolean, onClick: () -> Unit) {
+    Box(modifier = Modifier
+        .widthIn(min = 52.dp)
+        .clip(RoundedCornerShape(DesignTokens.radiusMd))
+        .background(if (isSelected) DesignTokens.brandBlue else MiuixTheme.colorScheme.surfaceVariant)
+        .clickable(onClick = onClick)
+        .padding(horizontal = DesignTokens.spacingSm, vertical = DesignTokens.spacingSm),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = name.ifBlank { "${index + 1}" }, style = MiuixTheme.textStyles.footnote1,
+            color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface, maxLines = 1)
+    }
+}
+
 @Composable
 private fun ActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    tint: androidx.compose.ui.graphics.Color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface,
+    tint: Color = MiuixTheme.colorScheme.onSurface,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .widthIn(min = 44.dp)
-    ) {
-        androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
-            contentDescription = label,
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(tint),
-            modifier = Modifier.size(24.dp)
-        )
+    Column(horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp).widthIn(min = 44.dp)) {
+        androidx.compose.foundation.Image(painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
+            contentDescription = label, colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.height(4.dp))
-        Text(label, style = top.yukonga.miuix.kmp.theme.MiuixTheme.textStyles.footnote2,
-            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.outline)
+        Text(label, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
     }
 }
