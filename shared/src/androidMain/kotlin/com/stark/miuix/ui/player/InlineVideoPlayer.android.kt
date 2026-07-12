@@ -59,7 +59,8 @@ actual fun InlineVideoPlayer(
     isLoading: Boolean,
     errorMessage: String?,
     onPositionChanged: (Long) -> Unit,
-    isFullscreen: Boolean
+    isFullscreen: Boolean,
+    onBufferingChanged: ((Boolean) -> Unit)?
 ) {
     val context = LocalContext.current
 
@@ -70,15 +71,16 @@ actual fun InlineVideoPlayer(
         }
     }
 
-    var isPlaying by remember { mutableStateOf(false) }
-    var currentPosition by remember { mutableLongStateOf(0L) }
-    var duration by remember { mutableLongStateOf(1L) }
-    var isBuffering by remember { mutableStateOf(true) }
+    var isPlaying by remember { mutableStateOf(exoPlayer.isPlaying) }
+    var currentPosition by remember { mutableLongStateOf(exoPlayer.currentPosition) }
+    var duration by remember { mutableLongStateOf(exoPlayer.duration.coerceAtLeast(1L)) }
+    var isBuffering by remember { mutableStateOf(exoPlayer.playbackState == Player.STATE_BUFFERING) }
 
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering = state == Player.STATE_BUFFERING
+                onBufferingChanged?.invoke(state == Player.STATE_BUFFERING)
             }
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
@@ -87,6 +89,7 @@ actual fun InlineVideoPlayer(
             }
             override fun onPlayerError(error: PlaybackException) {
                 isBuffering = false
+                onBufferingChanged?.invoke(false)
             }
         }
         exoPlayer.addListener(listener)
@@ -143,7 +146,7 @@ actual fun InlineVideoPlayer(
             modifier = Modifier.fillMaxSize()
         )
 
-        if (isBuffering && !isFullscreen) {
+        if (isBuffering) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(modifier = Modifier.size(36.dp))
             }

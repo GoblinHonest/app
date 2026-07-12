@@ -20,7 +20,8 @@ actual fun InlineVideoPlayer(
     isLoading: Boolean,
     errorMessage: String?,
     onPositionChanged: (Long) -> Unit,
-    isFullscreen: Boolean
+    isFullscreen: Boolean,
+    onBufferingChanged: ((Boolean) -> Unit)?
 ) {
     Box(modifier = modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black), contentAlignment = Alignment.Center) {
         Text(text = title, style = MiuixTheme.textStyles.body2, color = Color.White)

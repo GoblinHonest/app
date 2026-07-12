@@ -102,6 +102,14 @@ actual fun VideoPlayer(
         }
     }
 
+    // 防止全屏播放时自动熄屏
+    DisposableEffect(Unit) {
+        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     // MediaSession — 锁屏/通知栏/蓝牙耳机播控
     val mediaSession = remember(context, exoPlayer) {
         androidx.media3.session.MediaSession.Builder(context, exoPlayer)
@@ -118,7 +126,10 @@ actual fun VideoPlayer(
     var dmEnabled by remember { mutableStateOf(false) }
     var isLocked by remember { mutableStateOf(false) }
 
-    // 全屏 + 隐藏系统栏
+    // 全屏 + 隐藏系统栏 + 保存亮度
+    val savedBrightness = remember {
+        activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0 } ?: -1f
+    }
     DisposableEffect(Unit) {
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         activity?.window?.decorView?.windowInsetsController?.let { c ->
@@ -126,6 +137,12 @@ actual fun VideoPlayer(
             c.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         onDispose {
+            // 恢复原始亮度
+            if (savedBrightness >= 0) {
+                activity?.window?.attributes = activity?.window?.attributes?.apply {
+                    screenBrightness = savedBrightness
+                }
+            }
             VideoPlayerState.isPlaying = false
             mediaSession.release()
             // 不释放 ExoPlayer！返回内嵌播放器时继续用
@@ -354,6 +371,7 @@ actual fun VideoPlayer(
                             if (isPlaying) IconPause else IconPlay
                         ),
                         contentDescription = if (isPlaying) "暂停" else "播放",
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
                         modifier = Modifier.size(28.dp)
                     )
                 }

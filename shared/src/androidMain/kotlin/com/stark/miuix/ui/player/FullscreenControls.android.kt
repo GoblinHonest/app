@@ -9,11 +9,13 @@ import androidx.compose.runtime.Composable
 actual fun FullscreenControls(
     url: String,
     title: String,
-    onExitFullscreen: () -> Unit
+    onExitFullscreen: () -> Unit,
+    isBuffering: Boolean
 ) {
     FullscreenPlayerOverlay(
         url = url,
         title = title,
-        onExitFullscreen = onExitFullscreen
+        onExitFullscreen = onExitFullscreen,
+        isBuffering = isBuffering
     )
 }

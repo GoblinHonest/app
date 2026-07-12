@@ -68,7 +68,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun FullscreenPlayerOverlay(
     url: String,
     title: String,
-    onExitFullscreen: () -> Unit
+    onExitFullscreen: () -> Unit,
+    isBuffering: Boolean = false
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -85,7 +86,10 @@ fun FullscreenPlayerOverlay(
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var isLocked by remember { mutableStateOf(false) }
 
-    // 全屏 + 隐藏系统栏
+    // 全屏 + 隐藏系统栏 + 防止熄屏 + 保存亮度
+    val savedBrightness = remember {
+        activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0 } ?: -1f
+    }
     DisposableEffect(Unit) {
         activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         @Suppress("DEPRECATION")
@@ -94,7 +98,15 @@ fun FullscreenPlayerOverlay(
             or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
             or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
         )
+        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
+            // 恢复原始亮度
+            if (savedBrightness >= 0) {
+                activity?.window?.attributes = activity?.window?.attributes?.apply {
+                    screenBrightness = savedBrightness
+                }
+            }
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             @Suppress("DEPRECATION")
             activity?.window?.decorView?.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
@@ -279,23 +291,26 @@ fun FullscreenPlayerOverlay(
                     )
                 }
 
-                // 中央：播放/暂停
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(56.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
-                        .clickable {
-                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                            isPlaying = exoPlayer.isPlaying
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = rememberVectorPainter(if (isPlaying) IconPause else IconPlay),
-                        contentDescription = if (isPlaying) "暂停" else "播放",
-                        modifier = Modifier.size(28.dp)
-                    )
+                // 中央：播放/暂停（缓冲时隐藏，避免与转圈重叠）
+                if (!isBuffering) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(56.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                            .clickable {
+                                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                isPlaying = exoPlayer.isPlaying
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = rememberVectorPainter(if (isPlaying) IconPause else IconPlay),
+                            contentDescription = if (isPlaying) "暂停" else "播放",
+                            colorFilter = ColorFilter.tint(Color.White),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
 
                 // ====== 底部控制区 ======

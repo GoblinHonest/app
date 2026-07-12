@@ -19,5 +19,6 @@ expect fun InlineVideoPlayer(
     isLoading: Boolean = false,
     errorMessage: String? = null,
     onPositionChanged: (Long) -> Unit = {},
-    isFullscreen: Boolean = false
+    isFullscreen: Boolean = false,
+    onBufferingChanged: ((Boolean) -> Unit)? = null
 )

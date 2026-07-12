@@ -31,76 +31,104 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.coroutineScope
 
 /** 首页 UI 状态 */
 sealed interface HomeUiState {
     data object Loading : HomeUiState
     data class Success(
         val videos: List<SearchResult>,
-        val sources: List<VideoSource>
+        val currentCategory: String
     ) : HomeUiState
     data class Error(val message: String) : HomeUiState
 }
 
+/** 首页分类 Tab 定义 */
+val HOME_TABS = listOf("推荐", "电视剧", "动漫", "电影")
+
 /**
- * 首页 ViewModel — 多源聚合推荐
+ * 首页 ViewModel — 多源聚合 + 分类切换
  *
+ * - "推荐" Tab：每源默认分类混排去重
+ * - 其他 Tab：按 categoryUrls 映射加载对应分类
  * 使用 [supervisorScope] 并行加载，单个源失败不影响其他源。
  */
 class HomeViewModel(
     private val videoRepository: VideoRepository,
     private val sourceRepository: SourceRepository
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _currentCategory = MutableStateFlow("推荐")
+    val currentCategory: StateFlow<String> = _currentCategory.asStateFlow()
+
+    private var loaded = false
+
     fun loadVideos() {
+        if (loaded) return
+        loaded = true
+        AppLogger.d("Home", "loadVideos() 首次调用, category=${_currentCategory.value}")
         scope.launch {
-            if (_uiState.value !is HomeUiState.Success) {
-                _uiState.value = HomeUiState.Loading
-            }
-            fetchData()
+            fetchData(_currentCategory.value)
+        }
+    }
+
+    /** 切换分类 Tab */
+    fun switchCategory(category: String) {
+        if (_currentCategory.value == category) return
+        _currentCategory.value = category
+        _uiState.value = HomeUiState.Loading
+        AppLogger.d("Home", "switchCategory: $category")
+        scope.launch {
+            fetchData(category)
         }
     }
 
     fun refresh() {
         scope.launch {
             _isRefreshing.value = true
-            // 并行: 数据刷新 + 最小 800ms 展示时间（避免转圈一闪而过）
-            val dataJob = launch { fetchData() }
-            val minDelay = launch { delay(800) }
-            dataJob.join()
-            minDelay.join()
+            fetchData(_currentCategory.value)
+            delay(800)
             _isRefreshing.value = false
         }
     }
 
-    private suspend fun fetchData() {
+    private suspend fun fetchData(category: String) {
         try {
             val sources = sourceRepository.getEnabledSources()
-            AppLogger.d("Home", "加载首页, 启用源数: ${sources.size}")
+            AppLogger.d("Home", "加载分类[$category], 启用源数: ${sources.size}")
 
             if (sources.isEmpty()) {
-                _uiState.value = HomeUiState.Success(videos = emptyList(), sources = emptyList())
+                _uiState.value = HomeUiState.Success(videos = emptyList(), currentCategory = category)
                 return
             }
 
-            // supervisorScope: 单个源失败不取消其他源
-            val allVideos = supervisorScope {
+            val isRecommend = category == "推荐"
+
+            val allVideos = coroutineScope {
                 sources.map { source ->
-                    async {
+                    async(Dispatchers.Default) {
                         try {
-                            val result = videoRepository.getCategoryVideos(source)
+                            val categoryUrl = if (isRecommend) {
+                                ""
+                            } else {
+                                source.categoryRule.categoryUrls[category] ?: ""
+                            }
+                            if (!isRecommend && categoryUrl.isBlank()) {
+                                AppLogger.d("Home", "源[${source.sourceName}] 无[$category]分类, 跳过")
+                                return@async emptyList()
+                            }
+                            val result = videoRepository.getCategoryVideos(source, categoryUrl)
                             val videos = result.getOrDefault(emptyList()).take(PER_SOURCE_LIMIT)
-                            AppLogger.d("Home", "源[${source.sourceName}] 加载 ${videos.size} 条")
+                            AppLogger.d("Home", "源[${source.sourceName}][$category] 加载 ${videos.size} 条")
                             videos
                         } catch (e: Exception) {
-                            AppLogger.e("Home", "源[${source.sourceName}] 加载失败", e)
+                            AppLogger.e("Home", "源[${source.sourceName}][$category] 加载失败: ${e.message}")
                             emptyList()
                         }
                     }
@@ -108,10 +136,10 @@ class HomeViewModel(
             }
 
             val merged = interleave(allVideos).deduplicateByTitle()
-            AppLogger.d("Home", "聚合完成, 去重后 ${merged.size} 条视频")
-            _uiState.value = HomeUiState.Success(videos = merged, sources = sources)
+            AppLogger.d("Home", "[$category] 聚合完成, 去重后 ${merged.size} 条")
+            _uiState.value = HomeUiState.Success(videos = merged, currentCategory = category)
         } catch (e: Exception) {
-            AppLogger.e("Home", "首页加载异常", e)
+            AppLogger.e("Home", "[$category] 加载异常", e)
             _uiState.value = HomeUiState.Error(e.message ?: "加载失败")
         }
     }
@@ -127,11 +155,9 @@ class HomeViewModel(
         return result
     }
 
-    /**
-     * 按标题去重 — 多源相同视频只保留第一个出现的
-     */
     private fun List<SearchResult>.deduplicateByTitle(): List<SearchResult> {
-        return distinctBy { it.title.trim().lowercase() }
+        val seen = mutableSetOf<String>()
+        return filter { seen.add(it.title.trim().lowercase()) }
     }
 
     companion object {

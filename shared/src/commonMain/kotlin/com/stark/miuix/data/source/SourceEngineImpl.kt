@@ -26,6 +26,11 @@ import com.stark.miuix.util.AppLogger
 import com.stark.miuix.util.NetworkClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * 视频源引擎实现
@@ -55,10 +60,12 @@ class SourceEngineImpl(
             )
 
             items.map { item ->
+                val rawUrl = ruleParser.parseField(item, source.searchRule.urlRule, source.searchRule.ruleType)
+                val resolvedUrl = resolveJsonpathUrl(source.sourceUrl, source.searchRule.urlRule, item, rawUrl)
                 SearchResult(
                     title = ruleParser.parseField(item, source.searchRule.titleRule, source.searchRule.ruleType),
                     cover = resolveUrl(source.sourceUrl, ruleParser.parseField(item, source.searchRule.coverRule, source.searchRule.ruleType)),
-                    url = resolveUrl(source.sourceUrl, ruleParser.parseField(item, source.searchRule.urlRule, source.searchRule.ruleType)),
+                    url = resolvedUrl,
                     description = ruleParser.parseField(item, source.searchRule.descRule, source.searchRule.ruleType),
                     sourceName = source.sourceName
                 )
@@ -73,6 +80,11 @@ class SourceEngineImpl(
         runCatching {
             val content = fetchWithCache(url)
             val rule = source.detailRule
+
+            // MacCMS API JSON 格式检测：如果 URL 包含 api.php 或 ruleType 为 jsonpath
+            if (url.contains("api.php") || rule.ruleType == "jsonpath") {
+                return@runCatching parseMacCmsDetail(content, url, source)
+            }
 
             val episodeElements = ruleParser.selectList(
                 content, rule.episodeListRule, rule.ruleType
@@ -104,6 +116,12 @@ class SourceEngineImpl(
         episodeUrl: String
     ): Result<String> = withContext(Dispatchers.Default) {
         runCatching {
+            // MacCMS API 直链模式：episodeUrl 已经是 m3u8/mp4 直链
+            if (episodeUrl.endsWith(".m3u8") || episodeUrl.endsWith(".mp4")
+                || episodeUrl.contains(".m3u8?") || episodeUrl.contains(".mp4?")) {
+                return@runCatching episodeUrl
+            }
+
             AppLogger.d("Player", "解析播放地址: $episodeUrl")
             AppLogger.d("Player", "规则类型: ${source.playerRule.ruleType}, 规则: ${source.playerRule.playerUrlRule}")
 
@@ -120,7 +138,11 @@ class SourceEngineImpl(
                     match?.groupValues?.getOrNull(1)?.replace("\\/", "/") ?: ""
                 }
                 "js", "json" -> {
-                    extractPlayerFromScript(content, source.playerRule.playerUrlRule)
+                    extractPlayerFromScript(content, source.playerRule.playerUrlRule, episodeUrl)
+                }
+                "direct" -> {
+                    // direct 模式下 URL 不是直链，尝试从页面提取
+                    extractPlayerFromScript(content, "$.url", episodeUrl)
                 }
                 else -> {
                     ruleParser.parseFirst(content, source.playerRule.playerUrlRule, source.playerRule.ruleType)
@@ -130,7 +152,7 @@ class SourceEngineImpl(
             // 所有规则类型都尝试 MacCMS 回退
             if (playerUrl.isBlank()) {
                 AppLogger.d("Player", "规则解析为空，尝试 MacCMS 回退")
-                playerUrl = extractPlayerFromScript(content, "$.url")
+                playerUrl = extractPlayerFromScript(content, "$.url", episodeUrl)
             }
 
             AppLogger.d("Player", "解析结果: ${playerUrl.take(100)}")
@@ -140,13 +162,74 @@ class SourceEngineImpl(
     }
 
     /**
+     * 解析 MacCMS API JSON 格式的视频详情
+     *
+     * MacCMS API 返回格式：
+     * {"list":[{"vod_name":"...", "vod_pic":"...", "vod_play_url":"第01集$url1#第02集$url2"}]}
+     *
+     * vod_play_url 格式：
+     * - 多集：第01集$https://xxx.m3u8#第02集$https://yyy.m3u8
+     * - 多线路：线路1$playUrl1#线路2$playUrl$$$线路1$playUrl3#线路2$playUrl4
+     */
+    private fun parseMacCmsDetail(content: String, url: String, source: VideoSource): Video {
+        val root = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .parseToJsonElement(content)
+        val list = root.jsonObject["list"]?.jsonArray
+        val item = list?.firstOrNull()?.jsonObject
+            ?: throw Exception("MacCMS API 返回空列表")
+
+        val title = item["vod_name"]?.jsonPrimitive?.content ?: ""
+        val cover = item["vod_pic"]?.jsonPrimitive?.content ?: ""
+        val description = item["vod_content"]?.jsonPrimitive?.content
+            ?: item["vod_blurb"]?.jsonPrimitive?.content ?: ""
+        val status = item["vod_remarks"]?.jsonPrimitive?.content ?: ""
+
+        // 解析 vod_play_url → Episodes
+        val playUrlRaw = item["vod_play_url"]?.jsonPrimitive?.content ?: ""
+        val episodes = parsePlayUrl(playUrlRaw)
+
+        return Video(
+            id = url.hashCode().toString(),
+            title = title,
+            cover = cover,
+            description = description.replace(Regex("<[^>]+>"), ""), // 去除 HTML 标签
+            status = status,
+            sourceName = source.sourceName,
+            detailUrl = url,
+            episodes = episodes
+        )
+    }
+
+    /**
+     * 解析 MacCMS vod_play_url 格式
+     *
+     * 格式：集名$url#集名$url#...（多线路用 $$$ 分隔，取第一条线路）
+     */
+    private fun parsePlayUrl(raw: String): List<Episode> {
+        if (raw.isBlank()) return emptyList()
+        // 取第一条线路（$$$ 分隔多线路）
+        val firstLine = raw.split("\\$\\$\\$".toRegex()).first()
+        return firstLine.split("#").mapIndexedNotNull { index, segment ->
+            val parts = segment.split("$", limit = 2)
+            if (parts.size == 2) {
+                Episode(
+                    name = parts[0].trim(),
+                    url = parts[1].trim(),
+                    index = index
+                )
+            } else null
+        }
+    }
+
+    /**
      * 从页面 script 中提取播放地址
      *
-     * 支持 MacCMS 等常见 CMS 的播放页结构：
-     * - player_aaaa={"url":"..."}
-     * - 自定义 jsonpath 规则提取
+     * 支持多种播放器结构：
+     * - player_aaaa={"url":"..."}（MacCMS 标准）
+     * - var main = "/path/video.m3u8"（ckplayer/artplayer/DPlayer 常见）
+     * - var url = "https://..."
      */
-    private fun extractPlayerFromScript(html: String, rule: String): String {
+    private fun extractPlayerFromScript(html: String, rule: String, pageUrl: String = ""): String {
         // 如果规则是 jsonpath 格式，先提取 JSON 块再用 jsonpath 解析
         val jsonBlock = """player_aaaa\s*=\s*(\{[^;]+\})""".toRegex().find(html)?.groupValues?.get(1)
         if (jsonBlock != null && rule.isNotBlank()) {
@@ -158,12 +241,27 @@ class SourceEngineImpl(
         val patterns = listOf(
             """"url"\s*:\s*"([^"]+\.m3u8[^"]*)"""".toRegex(),
             """"url"\s*:\s*"([^"]+\.mp4[^"]*)"""".toRegex(),
+            // var/const/let main = "/path/to/video.m3u8?sign=xxx"
+            """(?:var|const|let)\s+main\s*=\s*["']([^"']+\.m3u8[^"']*?)["']""".toRegex(),
+            // var/const/let main = "https://..."
+            """(?:var|const|let)\s+main\s*=\s*["'](https?://[^"']+)["']""".toRegex(),
+            // var/const/let url = "/path/to/video.m3u8?sign=xxx"（相对路径）
+            """(?:var|const|let)\s+(?:video_?)?url\s*=\s*["'](/[^"']+\.m3u8[^"']*?)["']""".toRegex(),
+            // var/const/let url = "https://..."
+            """(?:var|const|let)\s+(?:video_?)?url\s*=\s*["'](https?://[^"']+)["']""".toRegex(),
             """"url"\s*:\s*"(https?://[^"]+)"""".toRegex()
         )
         for (pattern in patterns) {
             val match = pattern.find(html)
             if (match != null) {
                 val url = match.groupValues[1].replace("\\/", "/")
+                // 相对路径：用请求 URL 自身的域名拼接
+                if (url.startsWith("/") && pageUrl.isNotBlank()) {
+                    val hostMatch = """(https?://[^/\s"']+)""".toRegex().find(pageUrl)
+                    if (hostMatch != null) {
+                        return hostMatch.groupValues[1] + url
+                    }
+                }
                 if (url.startsWith("http")) return url
             }
         }
@@ -185,10 +283,11 @@ class SourceEngineImpl(
             val items = ruleParser.selectList(content, rule.videoListRule, rule.ruleType)
 
             items.map { item ->
+                val rawUrl = ruleParser.parseField(item, rule.urlRule, rule.ruleType)
                 SearchResult(
                     title = ruleParser.parseField(item, rule.titleRule, rule.ruleType),
                     cover = resolveUrl(source.sourceUrl, ruleParser.parseField(item, rule.coverRule, rule.ruleType)),
-                    url = resolveUrl(source.sourceUrl, ruleParser.parseField(item, rule.urlRule, rule.ruleType)),
+                    url = resolveJsonpathUrl(source.sourceUrl, rule.urlRule, item, rawUrl),
                     sourceName = source.sourceName
                 )
             }
@@ -198,6 +297,24 @@ class SourceEngineImpl(
     /** 带缓存的页面获取 */
     private suspend fun fetchWithCache(url: String): String {
         return pageCache.getOrPut(url) { networkClient.get(url) }
+    }
+
+    /**
+     * 解析包含 jsonpath 表达式的 URL 模板
+     *
+     * 如：/api.php/provide/vod/?ac=detail&ids=$.vod_id
+     * 其中 $.vod_id 会被替换为 JSON 中的实际值
+     */
+    private fun resolveJsonpathUrl(baseUrl: String, urlRule: String, item: String, fallback: String): String {
+        if (!urlRule.contains("$.")) {
+            return resolveUrl(baseUrl, fallback)
+        }
+        // 提取模板中的 jsonpath 占位符并替换
+        val resolved = urlRule.replace(Regex("\\$\\.([a-zA-Z0-9_]+)")) { match ->
+            ruleParser.parseField(item, match.value, "jsonpath")
+        }
+        if (resolved.startsWith("http://") || resolved.startsWith("https://")) return resolved
+        return resolveUrl(baseUrl, resolved)
     }
 
     /** 解析相对 URL 为绝对 URL */

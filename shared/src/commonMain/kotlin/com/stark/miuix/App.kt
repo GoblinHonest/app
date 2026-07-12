@@ -21,6 +21,10 @@ fun App() {
             val bytes = Res.readBytes("files/example_source.json")
             AppContainer.sourceRepository.initWithDefaultsIfEmpty(bytes.decodeToString())
         } catch (_: Exception) { }
+        try {
+            val bytes = Res.readBytes("files/feifan_source.json")
+            AppContainer.sourceRepository.initWithDefaultsIfEmpty(bytes.decodeToString())
+        } catch (_: Exception) { }
     }
 
     val navController = rememberNavController()

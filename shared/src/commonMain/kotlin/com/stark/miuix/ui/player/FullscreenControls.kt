@@ -13,5 +13,6 @@ import androidx.compose.runtime.Composable
 expect fun FullscreenControls(
     url: String,
     title: String,
-    onExitFullscreen: () -> Unit
+    onExitFullscreen: () -> Unit,
+    isBuffering: Boolean = false
 )

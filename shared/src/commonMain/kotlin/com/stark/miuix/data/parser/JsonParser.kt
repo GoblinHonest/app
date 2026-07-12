@@ -29,7 +29,13 @@ import kotlinx.serialization.json.jsonPrimitive
  * JSON 解析器
  *
  * 实现简化的 JSONPath 解析，支持从 JSON 内容中按路径提取数据。
- * 支持数组遍历（$..items[*]）和嵌套对象访问（$.data.list）。
+ * 兼容 MacCMS API 返回的 JSON 格式（如 /api.php/provide/vod/）。
+ *
+ * 支持的路径格式：
+ * - $.list[*] → 提取 list 数组中的所有元素
+ * - $.data.list → 访问嵌套对象中的数组
+ * - $.vod_name → 提取顶层字段值
+ * - vod_play_url → 提取相对路径字段值
  */
 class JsonParser : RuleParser {
 
@@ -41,7 +47,12 @@ class JsonParser : RuleParser {
         return runCatching {
             val root = json.parseToJsonElement(content)
             val elements = navigateToArray(root, rule)
-            elements.map { it.toString() }
+            elements.map { element ->
+                when (element) {
+                    is JsonPrimitive -> element.content
+                    else -> element.toString()
+                }
+            }
         }.getOrDefault(emptyList())
     }
 
@@ -49,7 +60,13 @@ class JsonParser : RuleParser {
         if (rule.isBlank() || ruleType != "jsonpath") return ""
 
         return runCatching {
-            val root = json.parseToJsonElement(content)
+            // 尝试解析为 JSON（selectList 输出的元素是 JSON 字符串）
+            val root = try {
+                json.parseToJsonElement(content)
+            } catch (_: Exception) {
+                // 非 JSON 内容，直接返回空
+                return@runCatching ""
+            }
             extractValue(root, rule)
         }.getOrDefault("")
     }
@@ -62,9 +79,9 @@ class JsonParser : RuleParser {
      * 沿 JSONPath 导航到目标数组
      *
      * 支持的路径格式：
+     * - $.list[*] → 返回 list 数组的所有元素
      * - $.data.list → 访问嵌套对象中的数组
      * - $..items → 递归查找名为 items 的数组
-     * - $.list[*] → 展开数组中的所有元素
      */
     private fun navigateToArray(root: JsonElement, path: String): List<JsonElement> {
         val normalizedPath = path.removePrefix("$").removePrefix(".")
@@ -98,6 +115,9 @@ class JsonParser : RuleParser {
 
     /**
      * 从 JSON 元素中提取单个值
+     *
+     * 支持绝对路径（$.vod_name）和相对路径（vod_name）。
+     * 当 content 是 selectList 输出的单个元素时，直接在其中查找字段。
      */
     private fun extractValue(root: JsonElement, path: String): String {
         val normalizedPath = path.removePrefix("$").removePrefix(".")

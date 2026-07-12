@@ -57,8 +57,20 @@ class SourceRepository(private val storage: LocalStorage? = null) {
     }
 
     fun initWithDefaultsIfEmpty(json: String) {
-        if (_sources.value.isNotEmpty()) return
-        importFromJson(json)
+        val defaults = runCatching { JsonUtils.decodeVideoSources(json) }.getOrNull() ?: return
+        if (_sources.value.isEmpty()) {
+            defaults.forEach { addSource(it) }
+        } else {
+            // 已有源时：新增不存在的源 + 版本更新已有源
+            defaults.forEach { default ->
+                val existing = _sources.value.find { it.sourceName == default.sourceName }
+                if (existing == null) {
+                    addSource(default)
+                } else if (default.version > existing.version) {
+                    addSource(default)
+                }
+            }
+        }
     }
 
     fun removeSource(sourceName: String) {

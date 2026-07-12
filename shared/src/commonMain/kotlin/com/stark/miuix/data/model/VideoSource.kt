@@ -92,7 +92,9 @@ data class CategoryRule(
     val videoListRule: String = "",
     val titleRule: String = "",
     val coverRule: String = "",
-    val urlRule: String = ""
+    val urlRule: String = "",
+    /** 大类 URL 映射，如 {"电视剧": "/api.php/...?t=2", "动漫": "/api.php/...?t=4"} */
+    val categoryUrls: Map<String, String> = emptyMap()
 )
 
 /**

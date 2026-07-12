@@ -1,0 +1,146 @@
+[
+  {
+    "sourceName": "非凡资源",
+    "sourceUrl": "https://cj.lziapi.com",
+    "version": 3,
+    "enabled": true,
+    "sourceGroup": "影视",
+    "sourceComment": "非凡资源 MacCMS API",
+    "searchRule": {
+      "searchUrl": "/api.php/provide/vod/?ac=detail&wd={{keyword}}",
+      "ruleType": "jsonpath",
+      "listRule": "$.list[*]",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "urlRule": "/api.php/provide/vod/?ac=detail&ids=$.vod_id",
+      "descRule": "$.vod_remarks"
+    },
+    "categoryRule": {
+      "categoryUrl": "/api.php/provide/vod/?ac=detail&t=2",
+      "ruleType": "jsonpath",
+      "categoryListRule": "",
+      "categoryNameRule": "",
+      "categoryUrlRule": "",
+      "videoListRule": "$.list[*]",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "urlRule": "/api.php/provide/vod/?ac=detail&ids=$.vod_id",
+      "categoryUrls": {
+        "电视剧": "/api.php/provide/vod/?ac=detail&t=2",
+        "动漫": "/api.php/provide/vod/?ac=detail&t=4",
+        "电影": "/api.php/provide/vod/?ac=detail&t=1"
+      }
+    },
+    "detailRule": {
+      "ruleType": "jsonpath",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "descRule": "$.vod_content",
+      "statusRule": "$.vod_remarks",
+      "episodeListRule": "",
+      "episodeNameRule": "",
+      "episodeUrlRule": ""
+    },
+    "playerRule": {
+      "ruleType": "direct",
+      "playerUrlRule": "",
+      "playerHeaders": {}
+    }
+  },
+  {
+    "sourceName": "ffzy资源",
+    "sourceUrl": "https://api.ffzyapi.com",
+    "version": 4,
+    "enabled": true,
+    "sourceGroup": "影视",
+    "sourceComment": "ffzy MacCMS API — 一级分类(t=1/2)不支持，用子分类替代",
+    "searchRule": {
+      "searchUrl": "/api.php/provide/vod/?ac=detail&wd={{keyword}}",
+      "ruleType": "jsonpath",
+      "listRule": "$.list[*]",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "urlRule": "/api.php/provide/vod/?ac=detail&ids=$.vod_id",
+      "descRule": "$.vod_remarks"
+    },
+    "categoryRule": {
+      "categoryUrl": "/api.php/provide/vod/?ac=detail",
+      "ruleType": "jsonpath",
+      "categoryListRule": "",
+      "categoryNameRule": "",
+      "categoryUrlRule": "",
+      "videoListRule": "$.list[*]",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "urlRule": "/api.php/provide/vod/?ac=detail&ids=$.vod_id",
+      "categoryUrls": {
+        "电视剧": "/api.php/provide/vod/?ac=detail&t=13",
+        "动漫": "/api.php/provide/vod/?ac=detail&t=29",
+        "电影": "/api.php/provide/vod/?ac=detail&t=11"
+      }
+    },
+    "detailRule": {
+      "ruleType": "jsonpath",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "descRule": "$.vod_content",
+      "statusRule": "$.vod_remarks",
+      "episodeListRule": "",
+      "episodeNameRule": "",
+      "episodeUrlRule": ""
+    },
+    "playerRule": {
+      "ruleType": "direct",
+      "playerUrlRule": "",
+      "playerHeaders": {}
+    }
+  },
+  {
+    "sourceName": "暴风资源",
+    "sourceUrl": "https://bfzyapi.com",
+    "version": 3,
+    "enabled": true,
+    "sourceGroup": "影视",
+    "sourceComment": "暴风资源 MacCMS API",
+    "searchRule": {
+      "searchUrl": "/api.php/provide/vod/?ac=detail&wd={{keyword}}",
+      "ruleType": "jsonpath",
+      "listRule": "$.list[*]",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "urlRule": "/api.php/provide/vod/?ac=detail&ids=$.vod_id",
+      "descRule": "$.vod_remarks"
+    },
+    "categoryRule": {
+      "categoryUrl": "/api.php/provide/vod/?ac=detail&t=30",
+      "ruleType": "jsonpath",
+      "categoryListRule": "",
+      "categoryNameRule": "",
+      "categoryUrlRule": "",
+      "videoListRule": "$.list[*]",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "urlRule": "/api.php/provide/vod/?ac=detail&ids=$.vod_id",
+      "categoryUrls": {
+        "电视剧": "/api.php/provide/vod/?ac=detail&t=30",
+        "动漫": "/api.php/provide/vod/?ac=detail&t=41",
+        "电影": "/api.php/provide/vod/?ac=detail&t=39"
+      }
+    },
+    "detailRule": {
+      "ruleType": "jsonpath",
+      "titleRule": "$.vod_name",
+      "coverRule": "$.vod_pic",
+      "descRule": "$.vod_content",
+      "statusRule": "$.vod_remarks",
+      "episodeListRule": "",
+      "episodeNameRule": "",
+      "episodeUrlRule": ""
+    },
+    "playerRule": {
+      "ruleType": "direct",
+      "playerUrlRule": "",
+      "playerHeaders": {}
+    }
+  }
+]

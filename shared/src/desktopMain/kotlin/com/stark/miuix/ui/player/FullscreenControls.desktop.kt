@@ -6,7 +6,8 @@ import androidx.compose.runtime.Composable
 actual fun FullscreenControls(
     url: String,
     title: String,
-    onExitFullscreen: () -> Unit
+    onExitFullscreen: () -> Unit,
+    isBuffering: Boolean
 ) {
     // Desktop: no-op (inline controls handle everything)
 }

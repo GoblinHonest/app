@@ -117,14 +117,14 @@ fun DetailScreen(
     var playerError by remember { mutableStateOf<String?>(null) }
     var inlinePlayerPosition by remember { mutableLongStateOf(0L) }
     var isPlayerFullscreen by remember { mutableStateOf(false) }
+    var isVideoBuffering by remember { mutableStateOf(false) }
 
-    // 拦截返回键：全屏时先退出全屏，非全屏时释放播放器后返回
+    // 拦截返回键：选集弹窗 → 全屏 → 退出详情页
     BackHandler(enabled = true) {
-        if (isPlayerFullscreen) {
-            isPlayerFullscreen = false
-        } else {
-            releaseSharedPlayer()
-            onNavigateBack()
+        when {
+            episodesExpanded -> episodesExpanded = false
+            isPlayerFullscreen -> isPlayerFullscreen = false
+            else -> { releaseSharedPlayer(); onNavigateBack() }
         }
     }
 
@@ -212,6 +212,7 @@ fun DetailScreen(
                             if (video.episodes.isNotEmpty()) {
                                 item {
                                     EpisodePreview(video,
+                                        selectedEpisodeIndex = selectedEpisodeIndex,
                                         onExpand = { episodesExpanded = true },
                                         onSelect = { index, episode ->
                                             selectedEpisodeIndex = index
@@ -245,16 +246,26 @@ fun DetailScreen(
             val currentUrl = resolvedVideoUrl
             if (currentUrl != null) {
                 val video = (uiState as? DetailUiState.Success)?.video
+                // 构建全屏标题：剧名 + 集数（如有）
+                val fullscreenTitle = buildString {
+                    append(video?.title ?: initialTitle)
+                    if (video != null && selectedEpisodeIndex in video.episodes.indices) {
+                        val epName = video.episodes[selectedEpisodeIndex].name
+                        if (epName.isNotBlank()) append(" - $epName")
+                    }
+                }
                 Box(modifier = Modifier.fillMaxSize()) {
                     InlineVideoPlayer(
-                        url = currentUrl, title = video?.title ?: initialTitle,
+                        url = currentUrl, title = fullscreenTitle,
                         modifier = Modifier.fillMaxSize(),
                         onRequestFullscreen = {}, isLoading = false, errorMessage = null,
-                        onPositionChanged = {}, isFullscreen = true
+                        onPositionChanged = {}, isFullscreen = true,
+                        onBufferingChanged = { isVideoBuffering = it }
                     )
                     FullscreenControls(
-                        url = currentUrl, title = video?.title ?: initialTitle,
-                        onExitFullscreen = { isPlayerFullscreen = false }
+                        url = currentUrl, title = fullscreenTitle,
+                        onExitFullscreen = { isPlayerFullscreen = false },
+                        isBuffering = isVideoBuffering
                     )
                 }
             }
@@ -349,7 +360,7 @@ private fun SourceSelector(state: DetailUiState.Success, onSwitch: (String) -> U
 }
 
 @Composable
-private fun EpisodePreview(video: Video, onExpand: () -> Unit, onSelect: (Int, com.stark.miuix.data.model.Episode) -> Unit) {
+private fun EpisodePreview(video: Video, selectedEpisodeIndex: Int, onExpand: () -> Unit, onSelect: (Int, com.stark.miuix.data.model.Episode) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()
         .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingSm)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -365,7 +376,7 @@ private fun EpisodePreview(video: Video, onExpand: () -> Unit, onSelect: (Int, c
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
             verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)) {
             video.episodes.take(12).forEachIndexed { index, episode ->
-                EpisodeChip(index, episode.name, false) { onSelect(index, episode) }
+                EpisodeChip(index, episode.name, isSelected = index == selectedEpisodeIndex) { onSelect(index, episode) }
             }
         }
     }

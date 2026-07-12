@@ -2,17 +2,17 @@
   {
     "sourceName": "叽哔动漫",
     "sourceUrl": "https://www.jibi.cc",
-    "version": 1,
+    "version": 2,
     "enabled": true,
     "sourceGroup": "动漫",
     "sourceComment": "叽哔动漫网 - 免费在线动漫站",
     "searchRule": {
       "searchUrl": "/index.php/vod/search/wd/{{keyword}}.html",
       "ruleType": "css",
-      "listRule": "a.module-card-item-poster",
+      "listRule": ".module-card-item",
       "titleRule": "strong@text",
       "coverRule": ".module-item-pic img@attr:data-original",
-      "urlRule": "@attr:href",
+      "urlRule": "a.module-item-title@attr:href",
       "descRule": ".module-item-note@text"
     },
     "categoryRule": {
@@ -24,7 +24,10 @@
       "videoListRule": "a.module-poster-item.module-item",
       "titleRule": "@attr:title",
       "coverRule": ".module-item-pic img@attr:data-original",
-      "urlRule": "@attr:href"
+      "urlRule": "@attr:href",
+      "categoryUrls": {
+        "动漫": "/index.php/vod/type/id/1.html"
+      }
     },
     "detailRule": {
       "ruleType": "css",
