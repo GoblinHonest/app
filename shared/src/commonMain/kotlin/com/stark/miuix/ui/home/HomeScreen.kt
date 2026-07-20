@@ -4,6 +4,7 @@
 
 package com.stark.miuix.ui.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +27,9 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,9 +41,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.data.model.WatchProgress
 import com.stark.miuix.data.repository.SourceRepository
@@ -48,15 +57,9 @@ import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoCard
 import com.stark.miuix.ui.icons.IconSearch
 import com.stark.miuix.ui.theme.DesignTokens
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
+import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 
 /**
  * 首页 — 分类 Tab + 推荐网格
@@ -239,7 +242,7 @@ private fun HomeContentFeed(
     sectionTitle: String,
     onVideoClick: (SearchResult) -> Unit
 ) {
-    val bannerVideo = if (showBanner) videos.firstOrNull() else null
+    val bannerVideos = if (showBanner) videos.take(BANNER_COUNT) else emptyList()
     val columns = com.stark.miuix.ui.layout.adaptiveGridColumns()
     val padding = com.stark.miuix.ui.layout.adaptiveScreenPadding()
 
@@ -253,12 +256,12 @@ private fun HomeContentFeed(
         verticalArrangement = Arrangement.spacedBy(DesignTokens.spacingMd),
         modifier = Modifier.fillMaxSize()
     ) {
-        // Banner 大图（仅推荐 Tab）
-        if (bannerVideo != null) {
+        // Banner 自动轮播（仅推荐 Tab）
+        if (bannerVideos.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                BannerCard(
-                    video = bannerVideo,
-                    onClick = { onVideoClick(bannerVideo) }
+                BannerCarousel(
+                    videos = bannerVideos,
+                    onVideoClick = onVideoClick
                 )
             }
         }
@@ -285,8 +288,8 @@ private fun HomeContentFeed(
             }
         }
 
-        // 3 列视频卡片
-        val gridVideos = if (bannerVideo != null) videos.drop(1) else videos
+        // 视频网格（Banner 已展示的条目不再重复）
+        val gridVideos = if (bannerVideos.isNotEmpty()) videos.drop(bannerVideos.size) else videos
         items(
             items = gridVideos,
             key = { "${it.sourceName}:${it.url}" }
@@ -299,15 +302,76 @@ private fun HomeContentFeed(
     }
 }
 
-/** Banner 自动轮播 — 16:9 横向封面 + 底部渐变标题 + 指示器圆点 */
+/** Banner 自动轮播 — 4s 切换 + 底部指示器圆点 */
 @Composable
-private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
+private fun BannerCarousel(
+    videos: List<SearchResult>,
+    onVideoClick: (SearchResult) -> Unit
+) {
+    val pagerState = rememberPagerState(pageCount = { videos.size })
+
+    LaunchedEffect(videos.size, pagerState) {
+        if (videos.size <= 1) return@LaunchedEffect
+        while (true) {
+            delay(BANNER_AUTO_MS)
+            val next = (pagerState.currentPage + 1) % videos.size
+            pagerState.animateScrollToPage(next)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(DesignTokens.bannerAspectRatio)
             .clip(RoundedCornerShape(DesignTokens.radiusLg))
             .background(MiuixTheme.colorScheme.surfaceVariant)
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            val video = videos[page]
+            BannerPage(
+                video = video,
+                onClick = { onVideoClick(video) }
+            )
+        }
+
+        // 指示器圆点
+        if (videos.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = DesignTokens.spacingMd, bottom = DesignTokens.spacingMd),
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingXs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(videos.size) { index ->
+                    val selected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .size(
+                                width = if (selected) 14.dp else 6.dp,
+                                height = 6.dp
+                            )
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(
+                                if (selected) Color.White
+                                else Color.White.copy(alpha = 0.45f)
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 单页 Banner 内容 */
+@Composable
+private fun BannerPage(video: SearchResult, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
             .clickable(onClick = onClick)
     ) {
         val coverUrl = video.cover
@@ -330,15 +394,33 @@ private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(DesignTokens.posterGradientStart, DesignTokens.bannerGradientEnd)
+                        colors = listOf(
+                            DesignTokens.posterGradientStart,
+                            DesignTokens.bannerGradientEnd
+                        )
                     )
                 )
         )
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(DesignTokens.spacingMd)
+                .padding(end = 72.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(DesignTokens.radiusXs))
+                    .background(DesignTokens.badgeRed)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "热播",
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
             Text(
                 text = video.title,
                 style = MiuixTheme.textStyles.body1,
@@ -359,24 +441,9 @@ private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
 
         Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = DesignTokens.spacingMd, bottom = if (video.description.isNotBlank()) 56.dp else 40.dp)
-                .clip(RoundedCornerShape(DesignTokens.radiusXs))
-                .background(DesignTokens.badgeRed)
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Text(
-                text = "热播",
-                style = MiuixTheme.textStyles.footnote2,
-                color = Color.White
-            )
-        }
-
-        Box(
-            modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = DesignTokens.spacingLg)
-                .size(44.dp)
+                .size(DesignTokens.touchTargetMin)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.25f)),
             contentAlignment = Alignment.Center
@@ -385,11 +452,14 @@ private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
                 painter = rememberVectorPainter(com.stark.miuix.ui.icons.IconPlay),
                 contentDescription = "播放",
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(DesignTokens.iconSizeMd)
             )
         }
     }
 }
+
+private const val BANNER_COUNT = 5
+private const val BANNER_AUTO_MS = 4000L
 
 @Composable
 private fun EmptySourceHint(onNavigateToSourceManage: () -> Unit) {

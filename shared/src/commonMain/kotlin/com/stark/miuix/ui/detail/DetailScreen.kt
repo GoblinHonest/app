@@ -497,16 +497,25 @@ private fun episodesUrl(index: Int, video: Video): String = video.episodes.getOr
 
 @Composable
 private fun EpisodeChip(index: Int, name: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(modifier = Modifier
-        .widthIn(min = 52.dp)
-        .clip(RoundedCornerShape(DesignTokens.radiusMd))
-        .background(if (isSelected) DesignTokens.brandBlue else MiuixTheme.colorScheme.surfaceVariant)
-        .clickable(onClick = onClick)
-        .padding(horizontal = DesignTokens.spacingSm, vertical = DesignTokens.spacingSm),
+    Box(
+        modifier = Modifier
+            .heightIn(min = DesignTokens.touchTargetMin)
+            .widthIn(min = DesignTokens.touchTargetMin)
+            .clip(RoundedCornerShape(DesignTokens.radiusMd))
+            .background(
+                if (isSelected) DesignTokens.brandBlue
+                else MiuixTheme.colorScheme.surfaceVariant
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = name.ifBlank { "${index + 1}" }, style = MiuixTheme.textStyles.footnote1,
-            color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface, maxLines = 1)
+        Text(
+            text = name.ifBlank { "${index + 1}" },
+            style = MiuixTheme.textStyles.footnote1,
+            color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
     }
 }
 
@@ -517,11 +526,21 @@ private fun ActionButton(
     tint: Color = MiuixTheme.colorScheme.onSurface,
     onClick: () -> Unit
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp).widthIn(min = 44.dp)) {
-        androidx.compose.foundation.Image(painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
-            contentDescription = label, colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.height(4.dp))
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .widthIn(min = DesignTokens.touchTargetMin)
+            .heightIn(min = DesignTokens.touchTargetMin)
+            .clickable(onClick = onClick)
+            .padding(horizontal = DesignTokens.spacingMd, vertical = DesignTokens.spacingSm)
+    ) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.graphics.vector.rememberVectorPainter(icon),
+            contentDescription = label,
+            colorFilter = ColorFilter.tint(tint),
+            modifier = Modifier.size(DesignTokens.iconSizeLg)
+        )
+        Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
         Text(label, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
     }
 }

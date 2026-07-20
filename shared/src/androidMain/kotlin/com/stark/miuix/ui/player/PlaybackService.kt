@@ -132,12 +132,14 @@ class PlaybackService : Service() {
 
     private fun handlePlay() {
         AppLogger.d("PlaybackService", "Play")
-        PlayerStore.player?.play()
+        PlayerStore.exoPlayer?.play()
+        PlayerStore.isPlaying = true
     }
 
     private fun handlePause() {
         AppLogger.d("PlaybackService", "Pause")
-        PlayerStore.player?.pause()
+        PlayerStore.exoPlayer?.pause()
+        PlayerStore.isPlaying = false
     }
 
     private fun handleNext() {

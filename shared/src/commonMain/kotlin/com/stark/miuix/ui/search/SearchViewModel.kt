@@ -56,10 +56,17 @@ class SearchViewModel(
     private val _suggestions = MutableStateFlow<List<String>>(emptyList())
     val suggestions: StateFlow<List<String>> = _suggestions.asStateFlow()
 
+    private val _hotSearches = MutableStateFlow(DEFAULT_HOT_SEARCHES)
+    val hotSearches: StateFlow<List<String>> = _hotSearches.asStateFlow()
+
     val searchHistory = videoRepository.searchHistory
 
     private var debounceJob: Job? = null
     private var suggestJob: Job? = null
+
+    init {
+        refreshHotSearches()
+    }
 
     /**
      * 防抖搜索 — 每次输入变更调用，500ms 无新输入后自动执行
@@ -94,19 +101,43 @@ class SearchViewModel(
         _suggestions.value = result
     }
 
+    /** 刷新热搜榜：优先用搜索历史热词，不足时补默认热搜 */
+    fun refreshHotSearches() {
+        coroutineScope.launch {
+            val history = videoRepository.searchHistory.value
+            val merged = (history + DEFAULT_HOT_SEARCHES)
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(HOT_SEARCH_LIMIT)
+            _hotSearches.value = merged.ifEmpty { DEFAULT_HOT_SEARCHES }
+        }
+    }
+
     /** 立即执行搜索（点击按钮或选择历史记录时） */
     fun search(keyword: String) {
         if (keyword.isBlank()) return
         debounceJob?.cancel()
+        suggestJob?.cancel()
+        _suggestions.value = emptyList()
         coroutineScope.launch { executeSearch(keyword) }
     }
 
     fun clearHistory() {
         videoRepository.clearHistory()
+        refreshHotSearches()
     }
 
     fun removeHistoryItem(keyword: String) {
         videoRepository.removeHistoryItem(keyword)
+        refreshHotSearches()
+    }
+
+    fun resetToIdle() {
+        debounceJob?.cancel()
+        suggestJob?.cancel()
+        _suggestions.value = emptyList()
+        _uiState.value = SearchUiState.Idle
     }
 
     private suspend fun executeSearch(keyword: String) {
@@ -115,6 +146,7 @@ class SearchViewModel(
         result.fold(
             onSuccess = { videos ->
                 _uiState.value = SearchUiState.Success(keyword, videos)
+                refreshHotSearches()
             },
             onFailure = { error ->
                 _uiState.value = SearchUiState.Error(keyword, error.message ?: "搜索失败")
@@ -125,5 +157,10 @@ class SearchViewModel(
     companion object {
         private const val DEBOUNCE_MS = 500L
         private const val SUGGEST_DEBOUNCE_MS = 300L
+        private const val HOT_SEARCH_LIMIT = 10
+        private val DEFAULT_HOT_SEARCHES = listOf(
+            "庆余年", "长相思", "繁花", "三体", "狂飙",
+            "奥本海默", "流浪地球", "权力的游戏", "海贼王", "进击的巨人"
+        )
     }
 }
