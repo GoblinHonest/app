@@ -44,7 +44,10 @@ data class VideoSource(
     val searchRule: SearchRule = SearchRule(),
     val categoryRule: CategoryRule = CategoryRule(),
     val detailRule: DetailRule = DetailRule(),
-    val playerRule: PlayerRule = PlayerRule()
+    val playerRule: PlayerRule = PlayerRule(),
+    val lastCheckTime: Long = 0,
+    val lastCheckStatus: String = "",
+    val lastCheckLatencyMs: Long = 0
 )
 
 /**
@@ -66,7 +69,9 @@ data class SearchRule(
     val titleRule: String = "",
     val coverRule: String = "",
     val urlRule: String = "",
-    val descRule: String = ""
+    val descRule: String = "",
+    val suggestUrl: String = "",
+    val suggestRule: String = ""
 )
 
 /**

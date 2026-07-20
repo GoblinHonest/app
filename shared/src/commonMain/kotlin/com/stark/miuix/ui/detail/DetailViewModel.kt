@@ -77,6 +77,9 @@ class DetailViewModel(
 
     /**
      * 后台从其他启用的源搜索同名视频并加载详情
+     *
+     * 性能要点：只发起一次聚合搜索（[videoRepository.search] 内部已并行查询所有源），
+     * 然后按 sourceName 分发结果给各源做详情解析，避免 N² 次重复搜索。
      */
     private fun loadOtherSources(
         title: String,
@@ -85,6 +88,10 @@ class DetailViewModel(
     ) {
         if (title.isBlank()) return
         scope.launch {
+            // 一次性聚合搜索所有源
+            val allSearchResults = videoRepository.search(title).getOrDefault(emptyList())
+            if (allSearchResults.isEmpty()) return@launch
+
             val otherSources = sourceRepository.getEnabledSources()
                 .filter { it.sourceName != primarySource }
 
@@ -92,26 +99,24 @@ class DetailViewModel(
                 otherSources.map { source ->
                     async {
                         try {
-                            val searchResults = videoRepository.search(title)
-                                .getOrDefault(emptyList())
+                            val hit = allSearchResults
                                 .filter { it.sourceName == source.sourceName }
                                 .firstOrNull { it.title.trim().equals(title.trim(), ignoreCase = true) }
+                                ?: return@async
 
-                            if (searchResults != null) {
-                                val video = videoRepository.getDetail(source, searchResults.url).getOrNull()
-                                if (video != null) {
-                                    AppLogger.d("Detail", "找到其他源: ${source.sourceName}")
-                                    synchronized(currentSources) {
-                                        currentSources[source.sourceName] = video
-                                    }
-                                    val current = _uiState.value
-                                    if (current is DetailUiState.Success) {
-                                        _uiState.value = current.copy(allSources = currentSources.toMap())
-                                    }
+                            val video = videoRepository.getDetail(source, hit.url).getOrNull()
+                            if (video != null) {
+                                AppLogger.d("Detail", "找到其他源: ${source.sourceName}")
+                                synchronized(currentSources) {
+                                    currentSources[source.sourceName] = video
+                                }
+                                val current = _uiState.value
+                                if (current is DetailUiState.Success) {
+                                    _uiState.value = current.copy(allSources = currentSources.toMap())
                                 }
                             }
                         } catch (e: Exception) {
-                            AppLogger.e("Detail", "搜索源[${source.sourceName}]失败", e)
+                            AppLogger.e("Detail", "解析源[${source.sourceName}]详情失败", e)
                         }
                     }
                 }

@@ -5,7 +5,6 @@
  */
 package com.stark.miuix.ui.detail
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -54,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,6 +65,7 @@ import com.stark.miuix.data.model.WatchHistory
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.di.AppContainer
 import com.stark.miuix.ui.icons.IconBack
 import com.stark.miuix.ui.icons.IconChat
 import com.stark.miuix.ui.icons.IconDownload
@@ -112,21 +111,13 @@ fun DetailScreen(
     var descExpanded by remember { mutableStateOf(false) }
     var episodesExpanded by remember { mutableStateOf(false) }
     var selectedEpisodeIndex by remember { mutableStateOf(-1) }
+    var selectedLineIndex by remember { mutableStateOf(0) }
     var resolvedVideoUrl by remember { mutableStateOf<String?>(null) }
     var playerLoading by remember { mutableStateOf(false) }
     var playerError by remember { mutableStateOf<String?>(null) }
     var inlinePlayerPosition by remember { mutableLongStateOf(0L) }
     var isPlayerFullscreen by remember { mutableStateOf(false) }
     var isVideoBuffering by remember { mutableStateOf(false) }
-
-    // 拦截返回键：选集弹窗 → 全屏 → 退出详情页
-    BackHandler(enabled = true) {
-        when {
-            episodesExpanded -> episodesExpanded = false
-            isPlayerFullscreen -> isPlayerFullscreen = false
-            else -> { releaseSharedPlayer(); onNavigateBack() }
-        }
-    }
 
     LaunchedEffect(detailUrl) {
         viewModel.loadDetail(sourceName, decodedUrl)
@@ -206,12 +197,26 @@ fun DetailScreen(
 
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             item { VideoInfoCard(video) }
-                            if (state.allSources.size > 1) {
-                                item { SourceSelector(state) { name -> viewModel.switchSource(name) } }
+                            item { SourceSelector(state) { name -> viewModel.switchSource(name) } }
+                            item {
+                                PlayLineSelector(
+                                    video = video,
+                                    selectedLineIndex = selectedLineIndex,
+                                    onSelectLine = { index ->
+                                        selectedLineIndex = index
+                                        selectedEpisodeIndex = -1
+                                        resolvedVideoUrl = null
+                                    }
+                                )
                             }
                             if (video.episodes.isNotEmpty()) {
                                 item {
-                                    EpisodePreview(video,
+                                    val displayEpisodes = if (video.playLines.isNotEmpty() && selectedLineIndex < video.playLines.size) {
+                                        video.playLines[selectedLineIndex].episodes
+                                    } else {
+                                        video.episodes
+                                    }
+                                    EpisodePreview(video.copy(episodes = displayEpisodes),
                                         selectedEpisodeIndex = selectedEpisodeIndex,
                                         onExpand = { episodesExpanded = true },
                                         onSelect = { index, episode ->
@@ -265,7 +270,8 @@ fun DetailScreen(
                     FullscreenControls(
                         url = currentUrl, title = fullscreenTitle,
                         onExitFullscreen = { isPlayerFullscreen = false },
-                        isBuffering = isVideoBuffering
+                        isBuffering = isVideoBuffering,
+                        dlnaController = AppContainer.dlnaController
                     )
                 }
             }
@@ -341,7 +347,9 @@ private fun VideoInfoCard(video: Video) {
 @Composable
 private fun SourceSelector(state: DetailUiState.Success, onSwitch: (String) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(text = "播放源 (${state.allSources.size})", style = MiuixTheme.textStyles.body1,
+        val count = state.allSources.size
+        val title = if (count <= 1) "播放源（加载中…）" else "播放源 ($count)"
+        Text(text = title, style = MiuixTheme.textStyles.body1,
             color = MiuixTheme.colorScheme.onSurface)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -352,6 +360,35 @@ private fun SourceSelector(state: DetailUiState.Success, onSwitch: (String) -> U
                     .clickable { onSwitch(name) }
                     .padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(text = name, style = MiuixTheme.textStyles.body2,
+                        color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface)
+                }
+            }
+        }
+    }
+}
+
+/** 线路切换选择器 — 当视频有多条播放线路时显示 */
+@Composable
+private fun PlayLineSelector(
+    video: Video,
+    selectedLineIndex: Int,
+    onSelectLine: (Int) -> Unit
+) {
+    if (video.playLines.size <= 1) return
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(text = "播放线路 (${video.playLines.size})", style = MiuixTheme.textStyles.body1,
+            color = MiuixTheme.colorScheme.onSurface)
+        Spacer(modifier = Modifier.height(8.dp))
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            video.playLines.forEachIndexed { index, line ->
+                val isSelected = index == selectedLineIndex
+                Box(modifier = Modifier.clip(RoundedCornerShape(DesignTokens.radiusXl))
+                    .background(if (isSelected) DesignTokens.brandBlue else MiuixTheme.colorScheme.surfaceVariant)
+                    .clickable { onSelectLine(index) }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)) {
+                    Text(text = line.name, style = MiuixTheme.textStyles.footnote1,
                         color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface)
                 }
             }
@@ -419,7 +456,7 @@ private fun EpisodeSheetOverlay(visible: Boolean, video: Video?, selectedEpisode
                 .clickable(onClick = onDismiss))
             val density = LocalDensity.current
             Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-                .heightIn(max = with(density) { (LocalConfiguration.current.screenHeightDp * 0.65f).dp })
+                .heightIn(max = 480.dp)
                 .clip(RoundedCornerShape(topStart = DesignTokens.radiusXl, topEnd = DesignTokens.radiusXl))
                 .background(MiuixTheme.colorScheme.surface).navigationBarsPadding()) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -435,8 +472,7 @@ private fun EpisodeSheetOverlay(visible: Boolean, video: Video?, selectedEpisode
                                 modifier = Modifier.clickable(onClick = onDismiss).padding(8.dp))
                         }
                     }
-                    val screenWidthDp = LocalConfiguration.current.screenWidthDp
-                    val cols = ((screenWidthDp - 32 + 8) / 72).coerceIn(3, 6)
+                    val cols = 4
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(cols),
                         modifier = Modifier.fillMaxWidth().weight(1f, fill = false)

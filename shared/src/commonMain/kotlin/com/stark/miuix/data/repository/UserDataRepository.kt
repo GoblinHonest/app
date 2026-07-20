@@ -18,6 +18,7 @@ package com.stark.miuix.data.repository
 
 import com.stark.miuix.data.model.Favorite
 import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.data.model.WatchProgress
 import com.stark.miuix.data.storage.LocalStorage
 import com.stark.miuix.util.currentTimeMillis
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,10 +38,14 @@ class UserDataRepository(private val storage: LocalStorage? = null) {
     private val _favorites = MutableStateFlow<List<Favorite>>(emptyList())
     val favorites: StateFlow<List<Favorite>> = _favorites.asStateFlow()
 
+    private val _progressList = MutableStateFlow<List<WatchProgress>>(emptyList())
+    val progressList: StateFlow<List<WatchProgress>> = _progressList.asStateFlow()
+
     init {
         storage?.let {
             _watchHistory.value = it.loadHistory()
             _favorites.value = it.loadFavorites()
+            _progressList.value = it.loadProgressList()
         }
     }
 
@@ -86,7 +91,40 @@ class UserDataRepository(private val storage: LocalStorage? = null) {
         storage?.saveFavorites(_favorites.value)
     }
 
+    // ===== 断点续播 =====
+
+    /** 保存/更新观看进度 */
+    fun saveProgress(progress: WatchProgress) {
+        val current = _progressList.value.toMutableList()
+        current.removeAll { it.videoId == progress.videoId }
+        current.add(0, progress.copy(timestamp = currentTimeMillis()))
+        if (current.size > MAX_PROGRESS) current.subList(MAX_PROGRESS, current.size).clear()
+        _progressList.value = current
+        storage?.saveProgressList(current)
+    }
+
+    /** 获取指定视频的观看进度 */
+    fun getProgress(videoId: String): WatchProgress? =
+        _progressList.value.find { it.videoId == videoId }
+
+    /** 获取"继续观看"列表（排除已看完的） */
+    fun getContinueWatching(limit: Int = 6): List<WatchProgress> =
+        _progressList.value.filter { !it.isCompleted }.take(limit)
+
+    /** 删除单条进度 */
+    fun removeProgress(videoId: String) {
+        _progressList.value = _progressList.value.filter { it.videoId != videoId }
+        storage?.saveProgressList(_progressList.value)
+    }
+
+    /** 清空所有进度 */
+    fun clearProgress() {
+        _progressList.value = emptyList()
+        storage?.saveProgressList(emptyList())
+    }
+
     companion object {
         private const val MAX_HISTORY = 200
+        private const val MAX_PROGRESS = 50
     }
 }

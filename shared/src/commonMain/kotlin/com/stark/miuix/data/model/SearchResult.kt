@@ -35,5 +35,7 @@ data class SearchResult(
     val cover: String = "",
     val url: String = "",
     val description: String = "",
-    val sourceName: String = ""
+    val sourceName: String = "",
+    val category: String = "",
+    val score: Double = 0.0
 )

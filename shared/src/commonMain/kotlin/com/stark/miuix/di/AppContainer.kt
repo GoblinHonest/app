@@ -23,8 +23,17 @@ import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.data.source.SourceEngineImpl
+import com.stark.miuix.data.source.SourceHealthChecker
+import com.stark.miuix.data.source.SourceRepoManager
+import com.stark.miuix.data.source.SuggestionService
 import com.stark.miuix.data.storage.LocalStorage
+import com.stark.miuix.data.dlna.DlnaController
 import com.stark.miuix.data.storage.getAppDataDir
+import com.stark.miuix.data.subtitle.SubtitleParser
+import com.stark.miuix.data.download.DownloadManager
+import com.stark.miuix.data.danmaku.DanmakuService
+import com.stark.miuix.data.recommend.RecommendEngine
+import com.stark.miuix.data.sync.SyncManager
 import com.stark.miuix.ui.search.SearchViewModel
 import com.stark.miuix.util.NetworkClient
 
@@ -48,6 +57,15 @@ object AppContainer {
     val sourceRepository by lazy { SourceRepository(localStorage) }
     val userDataRepository by lazy { UserDataRepository(localStorage) }
     val videoRepository by lazy { VideoRepository(sourceEngine, sourceRepository) }
+    val dlnaController by lazy { DlnaController(networkClient) }
+    val healthChecker by lazy { SourceHealthChecker(networkClient) }
+    val suggestionService by lazy { SuggestionService(networkClient, ruleParser) }
+    val subtitleParser by lazy { SubtitleParser() }
+    val downloadManager by lazy { DownloadManager(networkClient, localStorage) }
+    val recommendEngine by lazy { RecommendEngine(userDataRepository, videoRepository) }
+    val syncManager by lazy { SyncManager(localStorage, networkClient) }
+    val danmakuService by lazy { DanmakuService(networkClient) }
+    val sourceRepoManager by lazy { SourceRepoManager(networkClient, sourceRepository) }
 
-    val searchViewModel by lazy { SearchViewModel(videoRepository) }
+    val searchViewModel by lazy { SearchViewModel(videoRepository, suggestionService, sourceRepository) }
 }

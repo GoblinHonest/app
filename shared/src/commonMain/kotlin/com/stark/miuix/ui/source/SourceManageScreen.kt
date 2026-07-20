@@ -73,9 +73,14 @@ fun SourceManageScreen(
     sourceRepository: SourceRepository,
     onNavigateBack: () -> Unit
 ) {
-    val viewModel = remember(sourceRepository) { SourceManageViewModel(sourceRepository) }
+    val viewModel = remember(sourceRepository) {
+        SourceManageViewModel(sourceRepository, com.stark.miuix.di.AppContainer.healthChecker)
+    }
     val sources by viewModel.sources.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val isChecking by viewModel.isChecking.collectAsState()
+    val checkProgress by viewModel.checkProgress.collectAsState()
+    val checkResults by viewModel.checkResults.collectAsState()
     var importText by remember { mutableStateOf("") }
     var showImport by remember { mutableStateOf(false) }
     var importMode by remember { mutableStateOf(ImportMode.JSON) }
@@ -97,6 +102,13 @@ fun SourceManageScreen(
                 }
             },
             actions = {
+                IconButton(onClick = { viewModel.checkAllSources() }) {
+                    Text(
+                        if (isChecking) "检测中 ${checkProgress.first}/${checkProgress.second}" else "检测",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.primary
+                    )
+                }
                 IconButton(onClick = { showImport = !showImport }) {
                     Text(
                         if (showImport) "收起" else "导入",

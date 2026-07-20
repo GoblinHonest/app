@@ -85,7 +85,9 @@ fun ProfileScreen(
     userDataRepository: UserDataRepository,
     onNavigateToSourceManage: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToDetail: (String, String, String, String) -> Unit
+    onNavigateToDetail: (String, String, String, String) -> Unit,
+    onNavigateToDownloads: () -> Unit = {},
+    onNavigateToSourceRepo: () -> Unit = {}
 ) {
     val watchHistory by userDataRepository.watchHistory.collectAsState()
     val favorites by userDataRepository.favorites.collectAsState()
@@ -228,7 +230,9 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(DesignTokens.spacingMd))
             FeatureGrid(
                 onNavigateToSourceManage = onNavigateToSourceManage,
-                onNavigateToSettings = onNavigateToSettings
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToDownloads = onNavigateToDownloads,
+                onNavigateToSourceRepo = onNavigateToSourceRepo
             )
         }
 
@@ -508,9 +512,10 @@ private fun ContinueWatching(item: WatchHistory, onClick: (WatchHistory) -> Unit
 @Composable
 private fun FeatureGrid(
     onNavigateToSourceManage: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToDownloads: () -> Unit = {},
+    onNavigateToSourceRepo: () -> Unit = {}
 ) {
-    // 2×2 功能网格 — 只保留视频源管理和主题切换
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -527,6 +532,25 @@ private fun FeatureGrid(
                 subtitle = "添加 / 切换视频源",
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToSourceManage
+            )
+            FeatureCard(
+                icon = IconDownload,
+                title = "下载管理",
+                subtitle = "离线缓存视频",
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToDownloads
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+        ) {
+            FeatureCard(
+                icon = IconShare,
+                title = "源仓库",
+                subtitle = "在线订阅源",
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToSourceRepo
             )
             FeatureCard(
                 icon = IconPaint,

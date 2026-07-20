@@ -18,12 +18,12 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
 
 /**
- * 全局主题状态 — 简化版
+ * 全局主题状态
  *
- * 只支持亮色/暗色两种模式，默认亮色。
+ * 暗色优先（视频类 App 最佳体验），支持亮色/暗色切换。
  */
 object ThemeState {
-    private val _themeMode = MutableStateFlow(ThemeMode.LIGHT)
+    private val _themeMode = MutableStateFlow(ThemeMode.DARK)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     fun setThemeMode(mode: ThemeMode) { _themeMode.value = mode }

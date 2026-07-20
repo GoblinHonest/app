@@ -40,7 +40,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 actual fun VideoPlayer(
     url: String,
     title: String,
-    modifier: Modifier
+    modifier: Modifier,
+    startPosition: Long
 ) {
     Box(
         modifier = modifier

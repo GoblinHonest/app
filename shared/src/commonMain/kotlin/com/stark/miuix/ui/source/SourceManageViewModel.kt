@@ -18,7 +18,11 @@ package com.stark.miuix.ui.source
 
 import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.repository.SourceRepository
+import com.stark.miuix.data.source.CheckStatus
+import com.stark.miuix.data.source.SourceCheckResult
+import com.stark.miuix.data.source.SourceHealthChecker
 import com.stark.miuix.util.NetworkClient
+import com.stark.miuix.util.currentTimeMillis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -41,13 +45,23 @@ sealed interface SourceManageUiState {
  * 支持 JSON 文本导入和远程 URL 订阅导入两种方式。
  */
 class SourceManageViewModel(
-    private val sourceRepository: SourceRepository
+    private val sourceRepository: SourceRepository,
+    private val healthChecker: SourceHealthChecker? = null
 ) {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<SourceManageUiState>(SourceManageUiState.Idle)
     val uiState: StateFlow<SourceManageUiState> = _uiState.asStateFlow()
 
     val sources = sourceRepository.sources
+
+    private val _checkResults = MutableStateFlow<Map<String, SourceCheckResult>>(emptyMap())
+    val checkResults: StateFlow<Map<String, SourceCheckResult>> = _checkResults.asStateFlow()
+
+    private val _isChecking = MutableStateFlow(false)
+    val isChecking: StateFlow<Boolean> = _isChecking.asStateFlow()
+
+    private val _checkProgress = MutableStateFlow(0 to 0)
+    val checkProgress: StateFlow<Pair<Int, Int>> = _checkProgress.asStateFlow()
 
     private val networkClient = NetworkClient()
 
@@ -115,5 +129,48 @@ class SourceManageViewModel(
 
     fun clearState() {
         _uiState.value = SourceManageUiState.Idle
+    }
+
+    /** 检测所有启用源的健康状态 */
+    fun checkAllSources() {
+        val checker = healthChecker ?: return
+        val enabledSources = sourceRepository.getEnabledSources()
+        if (enabledSources.isEmpty()) return
+
+        coroutineScope.launch {
+            _isChecking.value = true
+            _checkResults.value = emptyMap()
+            _checkProgress.value = 0 to enabledSources.size
+
+            val results = checker.checkAll(enabledSources) { done, total ->
+                _checkProgress.value = done to total
+            }
+
+            val resultMap = results.associateBy { it.sourceName }
+            _checkResults.value = resultMap
+
+            results.forEach { result ->
+                val source = sourceRepository.getSourceByName(result.sourceName) ?: return@forEach
+                sourceRepository.addSource(source.copy(
+                    lastCheckTime = currentTimeMillis(),
+                    lastCheckStatus = result.status.name,
+                    lastCheckLatencyMs = result.latencyMs
+                ))
+            }
+            _isChecking.value = false
+        }
+    }
+
+    /** 一键禁用所有失效源 */
+    fun disableFailedSources() {
+        val failed = _checkResults.value.values
+            .filter { it.status != CheckStatus.OK }
+            .map { it.sourceName }
+        failed.forEach { name ->
+            val source = sourceRepository.getSourceByName(name)
+            if (source != null && source.enabled) {
+                sourceRepository.toggleSource(name)
+            }
+        }
     }
 }

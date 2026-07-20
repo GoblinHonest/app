@@ -64,7 +64,12 @@ import com.stark.miuix.util.ClipboardUtils
 fun SettingsScreen(
     onNavigateBack: () -> Unit
 ) {
-    val viewModel = remember { SettingsViewModel() }
+    val viewModel = remember {
+        SettingsViewModel(
+            localStorage = com.stark.miuix.di.AppContainer.localStorage,
+            syncManager = com.stark.miuix.di.AppContainer.syncManager
+        )
+    }
     val settings by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -181,6 +186,68 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 数据备份与同步
+            SettingsSection(title = "数据") {
+                val copyAction = ClipboardUtils.rememberCopyAction()
+                SettingsItem(
+                    title = "导出备份",
+                    subtitle = "将观看历史、收藏、进度导出为 JSON",
+                    actionText = "导出",
+                    onAction = {
+                        val json = viewModel.exportBackup()
+                        if (json != null) copyAction(json)
+                    }
+                )
+                SettingsItem(
+                    title = "恢复备份",
+                    subtitle = "粘贴备份 JSON 恢复数据",
+                    actionText = "恢复",
+                    onAction = {
+                        viewModel.importBackup("")
+                    }
+                )
+                if (settings.backupMessage.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        cornerRadius = DesignTokens.radiusCard
+                    ) {
+                        Text(
+                            text = settings.backupMessage,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+                SettingsItem(
+                    title = "WebDAV 同步上传",
+                    subtitle = "将数据上传到 WebDAV 服务器",
+                    actionText = "上传",
+                    onAction = { viewModel.syncUpload() }
+                )
+                SettingsItem(
+                    title = "WebDAV 同步下载",
+                    subtitle = "从 WebDAV 服务器恢复数据",
+                    actionText = "下载",
+                    onAction = { viewModel.syncDownload() }
+                )
+                if (settings.syncMessage.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        cornerRadius = DesignTokens.radiusCard
+                    ) {
+                        Text(
+                            text = settings.syncMessage,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.padding(12.dp)
+                        )
                     }
                 }
             }

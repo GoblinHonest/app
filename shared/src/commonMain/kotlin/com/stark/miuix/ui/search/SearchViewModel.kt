@@ -17,7 +17,9 @@
 package com.stark.miuix.ui.search
 
 import com.stark.miuix.data.model.SearchResult
+import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.VideoRepository
+import com.stark.miuix.data.source.SuggestionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -43,29 +45,53 @@ sealed interface SearchUiState {
  * 减少无效网络请求，提升响应流畅度。
  */
 class SearchViewModel(
-    private val videoRepository: VideoRepository
+    private val videoRepository: VideoRepository,
+    private val suggestionService: SuggestionService? = null,
+    private val sourceRepository: SourceRepository? = null
 ) {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
+    private val _suggestions = MutableStateFlow<List<String>>(emptyList())
+    val suggestions: StateFlow<List<String>> = _suggestions.asStateFlow()
+
     val searchHistory = videoRepository.searchHistory
 
     private var debounceJob: Job? = null
+    private var suggestJob: Job? = null
 
     /**
      * 防抖搜索 — 每次输入变更调用，500ms 无新输入后自动执行
      */
     fun onQueryChanged(keyword: String) {
         debounceJob?.cancel()
+        suggestJob?.cancel()
         if (keyword.isBlank()) {
             _uiState.value = SearchUiState.Idle
+            _suggestions.value = emptyList()
             return
         }
+        // 300ms 后获取联想词
+        suggestJob = coroutineScope.launch {
+            delay(SUGGEST_DEBOUNCE_MS)
+            fetchSuggestions(keyword)
+        }
+        // 500ms 后执行搜索
         debounceJob = coroutineScope.launch {
             delay(DEBOUNCE_MS)
+            _suggestions.value = emptyList()
             executeSearch(keyword)
         }
+    }
+
+    private suspend fun fetchSuggestions(keyword: String) {
+        val service = suggestionService ?: return
+        val repo = sourceRepository ?: return
+        val sources = repo.getEnabledSources()
+        if (sources.isEmpty()) return
+        val result = service.getSuggestions(sources, keyword)
+        _suggestions.value = result
     }
 
     /** 立即执行搜索（点击按钮或选择历史记录时） */
@@ -98,5 +124,6 @@ class SearchViewModel(
 
     companion object {
         private const val DEBOUNCE_MS = 500L
+        private const val SUGGEST_DEBOUNCE_MS = 300L
     }
 }

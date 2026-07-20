@@ -37,6 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.data.danmaku.DanmakuConfig
+import com.stark.miuix.data.danmaku.DanmakuEntry
+import com.stark.miuix.data.danmaku.DanmakuOverlay
+import com.stark.miuix.data.model.Subtitle
+import com.stark.miuix.data.subtitle.SubtitleParser
+import com.stark.miuix.di.AppContainer
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.UrlEncoder
 import com.stark.miuix.data.repository.SourceRepository
@@ -76,6 +82,11 @@ fun PlayerScreen(
     var videoUrl by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
+    var currentPosition by remember { mutableStateOf(0L) }
+    var danmakuEntries by remember { mutableStateOf<List<DanmakuEntry>>(emptyList()) }
+    var danmakuConfig by remember { mutableStateOf(DanmakuConfig()) }
+    var subtitles by remember { mutableStateOf<List<Subtitle>>(emptyList()) }
+    var currentSubtitleText by remember { mutableStateOf("") }
 
     LaunchedEffect(decodedEpisodeUrl) {
         isLoading = true
@@ -163,12 +174,34 @@ fun PlayerScreen(
                     }
                 }
                 else -> {
-                    VideoPlayer(
-                        url = videoUrl,
-                        title = title,
-                        modifier = Modifier.fillMaxSize(),
-                        startPosition = startPosition
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        VideoPlayer(
+                            url = videoUrl,
+                            title = title,
+                            modifier = Modifier.fillMaxSize(),
+                            startPosition = startPosition
+                        )
+                        DanmakuOverlay(
+                            entries = danmakuEntries,
+                            positionMs = currentPosition,
+                            config = danmakuConfig
+                        )
+                        if (currentSubtitleText.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 48.dp)
+                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = currentSubtitleText,
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

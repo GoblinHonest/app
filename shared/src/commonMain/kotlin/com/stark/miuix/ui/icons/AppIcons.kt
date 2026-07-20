@@ -1,634 +1,321 @@
 /*
  * Copyright 2024 Stark Industries
  *
- * 自定义线条风格图标系统
- * 参考逆向 APK 图标集名称自行设计 SVG 路径
- * 统一规格：24x24 viewBox，1.5px 线宽，圆角线帽
+ * CineHub 自绘图标系统 v2
+ * 规格：24x24 viewBox，1.8px 线宽，Round cap/join
+ * 使用：Image(painter = rememberVectorPainter(icon), colorFilter = ColorFilter.tint(color))
  */
 
 package com.stark.miuix.ui.icons
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-/** 统一线条风格 — 加粗到 2.0 让图标更圆润可爱 */
-private val stroke = Stroke(width = 2.0f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-private val vbSize = 24f
+private const val VB = 24f
+private const val SW = 1.8f
 
-/** 首页图标 — 房屋轮廓 */
-val IconHome: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 屋顶三角
-        moveTo(3f, 10f); lineTo(12f, 3f); lineTo(21f, 10f)
-        // 左墙
-        moveTo(5f, 10f); lineTo(5f, 20f)
-        // 右墙
-        moveTo(19f, 10f); lineTo(19f, 20f)
-        // 地板
-        moveTo(5f, 20f); lineTo(19f, 20f)
-        // 门
-        moveTo(10f, 20f); lineTo(10f, 15f); lineTo(14f, 15f); lineTo(14f, 20f)
-    }.build()
+private fun icon(block: ImageVector.Builder.() -> Unit): ImageVector {
+    val b = ImageVector.Builder(defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = VB, viewportHeight = VB)
+    b.block()
+    return b.build()
+}
 
-/** 搜索图标 — 放大镜 */
-val IconSearch: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 圆圈
-        moveTo(17f, 11f)
-        arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, 11f, 17f)
-        arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 11f)
-        arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, 17f, 11f)
-        // 手柄
-        moveTo(15.5f, 15.5f); lineTo(20f, 20f)
-    }.build()
+private fun ImageVector.Builder.sp(block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit) {
+    path(stroke = SolidColor(Color.Black), strokeLineWidth = SW, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round, pathBuilder = block)
+}
 
-/** 用户图标 — 人形轮廓 */
-val IconUser: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 头部圆
-        moveTo(16f, 8f)
-        arcTo(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 12f)
-        arcTo(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, 8f, 8f)
-        arcTo(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 8f)
-        // 身体弧线
-        moveTo(4f, 20f)
-        curveTo(4f, 17f, 7.6f, 15f, 12f, 15f)
-        curveTo(16.4f, 15f, 20f, 17f, 20f, 20f)
-    }.build()
+private fun ImageVector.Builder.fp(block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit) {
+    path(fill = SolidColor(Color.Black), pathBuilder = block)
+}
 
-/** 播放图标 — 三角形 */
-val IconPlay: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close()
-    }.build()
+// ─── 导航 ───
 
-/** 暂停图标 — 双竖线 */
-val IconPause: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        moveTo(9f, 5f); lineTo(9f, 19f)
-        moveTo(15f, 5f); lineTo(15f, 19f)
-    }.build()
+val IconHome: ImageVector get() = icon { sp {
+    moveTo(4f, 10.5f); lineTo(12f, 4f); lineTo(20f, 10.5f)
+    moveTo(6f, 9.5f); lineTo(6f, 19f)
+    arcTo(1f, 1f, 0f, false, false, 7f, 20f); lineTo(17f, 20f)
+    arcTo(1f, 1f, 0f, false, false, 18f, 19f); lineTo(18f, 9.5f)
+    moveTo(10f, 20f); lineTo(10f, 15f)
+    arcTo(1f, 1f, 0f, false, true, 11f, 14f); lineTo(13f, 14f)
+    arcTo(1f, 1f, 0f, false, true, 14f, 15f); lineTo(14f, 20f)
+}}
 
-/** 下一集图标 */
-val IconNext: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(6f, 6f); lineTo(14f, 12f); lineTo(6f, 18f); close()
-        moveTo(17f, 6f); lineTo(17f, 18f)
-    }.build()
+val IconSearch: ImageVector get() = icon { sp {
+    moveTo(16.5f, 11f)
+    arcTo(5.5f, 5.5f, 0f, true, true, 11f, 16.5f)
+    arcTo(5.5f, 5.5f, 0f, true, true, 5.5f, 11f)
+    arcTo(5.5f, 5.5f, 0f, true, true, 16.5f, 11f)
+    moveTo(15.2f, 15.2f); lineTo(20f, 20f)
+}}
 
-/** 全屏图标 */
-val IconFullscreen: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 左上角
-        moveTo(4f, 9f); lineTo(4f, 4f); lineTo(9f, 4f)
-        // 右上角
-        moveTo(15f, 4f); lineTo(20f, 4f); lineTo(20f, 9f)
-        // 右下角
-        moveTo(20f, 15f); lineTo(20f, 20f); lineTo(15f, 20f)
-        // 左下角
-        moveTo(9f, 20f); lineTo(4f, 20f); lineTo(4f, 15f)
-    }.build()
+val IconUser: ImageVector get() = icon { sp {
+    moveTo(15.5f, 7.5f)
+    arcTo(3.5f, 3.5f, 0f, true, true, 12f, 11f)
+    arcTo(3.5f, 3.5f, 0f, true, true, 8.5f, 7.5f)
+    arcTo(3.5f, 3.5f, 0f, true, true, 15.5f, 7.5f)
+    moveTo(4.5f, 20f)
+    curveTo(4.5f, 17f, 7.8f, 14.5f, 12f, 14.5f)
+    curveTo(16.2f, 14.5f, 19.5f, 17f, 19.5f, 20f)
+}}
 
-/** 锁定图标 */
-val IconLock: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 锁身
-        moveTo(6f, 11f); lineTo(6f, 20f); lineTo(18f, 20f); lineTo(18f, 11f); close()
-        // 锁弓
-        moveTo(8f, 11f); lineTo(8f, 7f)
-        arcTo(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 7f)
-        lineTo(16f, 11f)
-        // 锁眼
-        moveTo(12f, 15f); lineTo(12f, 16f)
-    }.build()
+// ─── 播放器控制 ───
 
-/** 弹幕图标 */
-val IconDanmaku: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 3条滚动线
-        moveTo(4f, 8f); lineTo(20f, 8f)
-        moveTo(4f, 12f); lineTo(16f, 12f)
-        moveTo(4f, 16f); lineTo(18f, 16f)
-    }.build()
+val IconPlay: ImageVector get() = icon { fp {
+    moveTo(8f, 5.5f); lineTo(8f, 18.5f)
+    arcTo(0.8f, 0.8f, 0f, false, false, 9.2f, 19.2f)
+    lineTo(18.5f, 12.7f)
+    arcTo(0.8f, 0.8f, 0f, false, false, 18.5f, 11.3f)
+    lineTo(9.2f, 4.8f)
+    arcTo(0.8f, 0.8f, 0f, false, false, 8f, 5.5f)
+    close()
+}}
 
-/** 下载图标 */
-val IconDownload: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(12f, 4f); lineTo(12f, 15f)
-        moveTo(8f, 11f); lineTo(12f, 15f); lineTo(16f, 11f)
-        moveTo(4f, 18f); lineTo(4f, 20f); lineTo(20f, 20f); lineTo(20f, 18f)
-    }.build()
+val IconPause: ImageVector get() = icon { sp {
+    moveTo(9f, 5.5f); lineTo(9f, 18.5f)
+    moveTo(15f, 5.5f); lineTo(15f, 18.5f)
+}}
 
-/** 分享图标 */
-val IconShare: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 三个点
-        moveTo(6f, 12f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 4f, 14f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 8f, 14f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 4f, 12f)
-        moveTo(18f, 5f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 7f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 20f, 7f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 5f)
-        moveTo(18f, 19f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 21f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 20f, 21f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 16f, 19f)
-        // 连线
-        moveTo(7.5f, 13f); lineTo(15.5f, 7f)
-        moveTo(7.5f, 13f); lineTo(15.5f, 19f)
-    }.build()
+val IconNext: ImageVector get() = icon { sp {
+    moveTo(6f, 6f); lineTo(14f, 12f); lineTo(6f, 18f)
+    moveTo(17.5f, 6f); lineTo(17.5f, 18f)
+}}
 
-/** 点赞图标 — 心形 */
-val IconLike: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(12f, 21f)
-        curveTo(12f, 21f, 3f, 15f, 3f, 9f)
-        arcTo(4.5f, 4.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 7.5f)
-        arcTo(4.5f, 4.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 21f, 9f)
-        curveTo(21f, 15f, 12f, 21f, 12f, 21f)
-    }.build()
+val IconFullscreen: ImageVector get() = icon { sp {
+    moveTo(4f, 9f); lineTo(4f, 5f); arcTo(1f, 1f, 0f, false, true, 5f, 4f); lineTo(9f, 4f)
+    moveTo(15f, 4f); lineTo(19f, 4f); arcTo(1f, 1f, 0f, false, true, 20f, 5f); lineTo(20f, 9f)
+    moveTo(20f, 15f); lineTo(20f, 19f); arcTo(1f, 1f, 0f, false, true, 19f, 20f); lineTo(15f, 20f)
+    moveTo(9f, 20f); lineTo(5f, 20f); arcTo(1f, 1f, 0f, false, true, 4f, 19f); lineTo(4f, 15f)
+}}
 
-/** 收藏图标 — 五角星 */
-val IconStar: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(12f, 2f); lineTo(15.09f, 8.26f); lineTo(22f, 9.27f)
-        lineTo(17f, 14.14f); lineTo(18.18f, 21.02f); lineTo(12f, 17.77f)
-        lineTo(5.82f, 21.02f); lineTo(7f, 14.14f); lineTo(2f, 9.27f)
-        lineTo(8.91f, 8.26f); close()
-    }.build()
+val IconExitFullscreen: ImageVector get() = icon { sp {
+    moveTo(9f, 4f); lineTo(9f, 9f); lineTo(4f, 9f)
+    moveTo(15f, 4f); lineTo(15f, 9f); lineTo(20f, 9f)
+    moveTo(20f, 15f); lineTo(15f, 15f); lineTo(15f, 20f)
+    moveTo(4f, 15f); lineTo(9f, 15f); lineTo(9f, 20f)
+}}
 
-/** 评论图标 — 气泡 */
-val IconChat: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(21f, 15f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 17f)
-        lineTo(7f, 17f); lineTo(3f, 21f); lineTo(3f, 5f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 3f)
-        lineTo(19f, 3f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 21f, 5f)
-        close()
-    }.build()
+val IconLock: ImageVector get() = icon { sp {
+    moveTo(7f, 11f); lineTo(7f, 19f); arcTo(1f, 1f, 0f, false, false, 8f, 20f)
+    lineTo(16f, 20f); arcTo(1f, 1f, 0f, false, false, 17f, 19f); lineTo(17f, 11f)
+    arcTo(1f, 1f, 0f, false, false, 16f, 10f); lineTo(8f, 10f); arcTo(1f, 1f, 0f, false, false, 7f, 11f)
+    moveTo(9f, 10f); lineTo(9f, 7f)
+    arcTo(3f, 3f, 0f, false, true, 15f, 7f); lineTo(15f, 10f)
+    moveTo(12f, 14f); lineTo(12f, 16f)
+}}
 
-/** 设置图标 — 齿轮 */
-val IconSettings: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 中心圆
-        moveTo(15f, 12f)
-        arcTo(3f, 3f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 15f)
-        arcTo(3f, 3f, 0f, isMoreThanHalf = false, isPositiveArc = true, 9f, 12f)
-        arcTo(3f, 3f, 0f, isMoreThanHalf = false, isPositiveArc = true, 15f, 12f)
-        // 外圈锯齿（简化为8个点）
-        moveTo(12f, 2f); lineTo(12f, 4f)
-        moveTo(12f, 20f); lineTo(12f, 22f)
-        moveTo(2f, 12f); lineTo(4f, 12f)
-        moveTo(20f, 12f); lineTo(22f, 12f)
-        moveTo(4.93f, 4.93f); lineTo(6.34f, 6.34f)
-        moveTo(17.66f, 17.66f); lineTo(19.07f, 19.07f)
-        moveTo(4.93f, 19.07f); lineTo(6.34f, 17.66f)
-        moveTo(17.66f, 6.34f); lineTo(19.07f, 4.93f)
-    }.build()
+// ─── 弹幕 ───
 
-/** 历史记录图标 — 时钟 */
-val IconHistory: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 圆
-        moveTo(22f, 12f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 22f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 12f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 22f, 12f)
-        // 指针
-        moveTo(12f, 6f); lineTo(12f, 12f); lineTo(16f, 14f)
-    }.build()
+val IconDanmaku: ImageVector get() = icon { sp {
+    moveTo(4f, 7.5f); lineTo(20f, 7.5f)
+    moveTo(4f, 12f); lineTo(15f, 12f)
+    moveTo(4f, 16.5f); lineTo(18f, 16.5f)
+}}
 
-/** 排行榜图标 */
-val IconRank: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 三根柱子
-        moveTo(4f, 20f); lineTo(4f, 12f); lineTo(8f, 12f); lineTo(8f, 20f)
-        moveTo(10f, 20f); lineTo(10f, 6f); lineTo(14f, 6f); lineTo(14f, 20f)
-        moveTo(16f, 20f); lineTo(16f, 9f); lineTo(20f, 9f); lineTo(20f, 20f)
-        // 基线
-        moveTo(2f, 20f); lineTo(22f, 20f)
-    }.build()
+val IconDanmakuOff: ImageVector get() = icon { sp {
+    moveTo(4f, 7.5f); lineTo(20f, 7.5f)
+    moveTo(4f, 12f); lineTo(15f, 12f)
+    moveTo(4f, 16.5f); lineTo(12f, 16.5f)
+    moveTo(16f, 14.5f); lineTo(20f, 18.5f)
+    moveTo(20f, 14.5f); lineTo(16f, 18.5f)
+}}
 
-/** 弹幕图标（关闭态）— dm_close */
-val IconDanmakuOff: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 3条线 + 删除斜线
-        moveTo(4f, 8f); lineTo(20f, 8f)
-        moveTo(4f, 12f); lineTo(16f, 12f)
-        moveTo(4f, 16f); lineTo(12f, 16f)
-        // 斜线表示关闭
-        moveTo(16f, 14f); lineTo(20f, 18f)
-        moveTo(20f, 14f); lineTo(16f, 18f)
-    }.build()
+// ─── 操作 ───
 
-/** 全屏退出图标 — full */
-val IconExitFullscreen: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 四角向内
-        moveTo(9f, 4f); lineTo(4f, 4f); lineTo(4f, 9f)
-        moveTo(15f, 4f); lineTo(20f, 4f); lineTo(20f, 9f)
-        moveTo(20f, 15f); lineTo(20f, 20f); lineTo(15f, 20f)
-        moveTo(9f, 20f); lineTo(4f, 20f); lineTo(4f, 15f)
-    }.build()
+val IconDownload: ImageVector get() = icon { sp {
+    moveTo(12f, 4f); lineTo(12f, 14f)
+    moveTo(8f, 10.5f); lineTo(12f, 14.5f); lineTo(16f, 10.5f)
+    moveTo(4f, 17f); lineTo(4f, 19f); arcTo(1f, 1f, 0f, false, false, 5f, 20f)
+    lineTo(19f, 20f); arcTo(1f, 1f, 0f, false, false, 20f, 19f); lineTo(20f, 17f)
+}}
 
-/** 删除/取消图标 — cancel/delete */
-val IconCancel: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        moveTo(18f, 6f); lineTo(6f, 18f)
-        moveTo(6f, 6f); lineTo(18f, 18f)
-    }.build()
+val IconShare: ImageVector get() = icon { sp {
+    moveTo(8.5f, 12f); arcTo(2.5f, 2.5f, 0f, true, true, 6f, 14.5f); arcTo(2.5f, 2.5f, 0f, true, true, 3.5f, 12f); arcTo(2.5f, 2.5f, 0f, true, true, 8.5f, 12f)
+    moveTo(20.5f, 5f); arcTo(2.5f, 2.5f, 0f, true, true, 18f, 7.5f); arcTo(2.5f, 2.5f, 0f, true, true, 15.5f, 5f); arcTo(2.5f, 2.5f, 0f, true, true, 20.5f, 5f)
+    moveTo(20.5f, 19f); arcTo(2.5f, 2.5f, 0f, true, true, 18f, 21.5f); arcTo(2.5f, 2.5f, 0f, true, true, 15.5f, 19f); arcTo(2.5f, 2.5f, 0f, true, true, 20.5f, 19f)
+    moveTo(8.2f, 10.8f); lineTo(15.8f, 6.2f)
+    moveTo(8.2f, 13.2f); lineTo(15.8f, 17.8f)
+}}
 
-/** 更多操作图标 — more */
-val IconMore: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round
-    ) {
-        // 三个点
-        moveTo(12f, 5f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 5.01f)
-        moveTo(12f, 12f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 12.01f)
-        moveTo(12f, 19f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 19.01f)
-    }.build()
+val IconLike: ImageVector get() = icon { sp {
+    moveTo(12f, 20.5f)
+    curveTo(12f, 20.5f, 3.5f, 15f, 3.5f, 9.5f)
+    arcTo(4.2f, 4.2f, 0f, false, true, 12f, 7.8f)
+    arcTo(4.2f, 4.2f, 0f, false, true, 20.5f, 9.5f)
+    curveTo(20.5f, 15f, 12f, 20.5f, 12f, 20.5f)
+}}
 
-/** 分辨率/超清图标 */
-val IconHD: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // HD 文字形状
-        moveTo(4f, 8f); lineTo(4f, 16f)
-        moveTo(4f, 12f); lineTo(9f, 12f)
-        moveTo(9f, 8f); lineTo(9f, 16f)
-        // D字
-        moveTo(13f, 8f); lineTo(13f, 16f)
-        moveTo(13f, 8f); curveTo(17f, 8f, 19f, 10f, 19f, 12f)
-        curveTo(19f, 14f, 17f, 16f, 13f, 16f)
-    }.build()
+val IconStar: ImageVector get() = icon { sp {
+    moveTo(12f, 3f); lineTo(14.7f, 8.6f); lineTo(21f, 9.5f)
+    lineTo(16.5f, 13.8f); lineTo(17.6f, 20f); lineTo(12f, 17f)
+    lineTo(6.4f, 20f); lineTo(7.5f, 13.8f); lineTo(3f, 9.5f)
+    lineTo(9.3f, 8.6f); close()
+}}
 
-/** 反馈图标 — feedback */
-val IconFeedback: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 感叹号圆圈
-        moveTo(12f, 8f); lineTo(12f, 12f)
-        moveTo(12f, 16f); lineTo(12.01f, 16f)
-        moveTo(22f, 12f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 22f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 12f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 22f, 12f)
-    }.build()
+val IconChat: ImageVector get() = icon { sp {
+    moveTo(21f, 14.5f)
+    arcTo(2f, 2f, 0f, false, true, 19f, 16.5f)
+    lineTo(7.5f, 16.5f); lineTo(3.5f, 20.5f); lineTo(3.5f, 5.5f)
+    arcTo(2f, 2f, 0f, false, true, 5.5f, 3.5f)
+    lineTo(19f, 3.5f)
+    arcTo(2f, 2f, 0f, false, true, 21f, 5.5f)
+    close()
+}}
 
-/** 邮件图标 — mail */
-val IconMail: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 信封外框
-        moveTo(3f, 6f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 4f)
-        lineTo(19f, 4f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 21f, 6f)
-        lineTo(21f, 18f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 20f)
-        lineTo(5f, 20f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 18f)
-        close()
-        // V形折痕
-        moveTo(3f, 6f); lineTo(12f, 13f); lineTo(21f, 6f)
-    }.build()
-val IconBack: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(19f, 12f); lineTo(5f, 12f)
-        moveTo(11f, 6f); lineTo(5f, 12f); lineTo(11f, 18f)
-    }.build()
+// ─── 功能 ───
 
-/** 通知图标 — 铃铛 */
-val IconNotice: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(18f, 8f)
-        arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = false, 6f, 8f)
-        lineTo(4f, 17f); lineTo(20f, 17f); close()
-        moveTo(10f, 17f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 14f, 17f)
-    }.build()
+val IconSettings: ImageVector get() = icon { sp {
+    moveTo(14.7f, 12f); arcTo(2.7f, 2.7f, 0f, true, true, 12f, 14.7f); arcTo(2.7f, 2.7f, 0f, true, true, 9.3f, 12f); arcTo(2.7f, 2.7f, 0f, true, true, 14.7f, 12f)
+    moveTo(12f, 2.5f); lineTo(12f, 4.5f)
+    moveTo(12f, 19.5f); lineTo(12f, 21.5f)
+    moveTo(2.5f, 12f); lineTo(4.5f, 12f)
+    moveTo(19.5f, 12f); lineTo(21.5f, 12f)
+    moveTo(5.3f, 5.3f); lineTo(6.7f, 6.7f)
+    moveTo(17.3f, 17.3f); lineTo(18.7f, 18.7f)
+    moveTo(5.3f, 18.7f); lineTo(6.7f, 17.3f)
+    moveTo(17.3f, 6.7f); lineTo(18.7f, 5.3f)
+}}
 
-/** 悬浮播放图标 */
-val IconFloating: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = vbSize, viewportHeight = vbSize
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        // 外框
-        moveTo(3f, 7f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 5f)
-        lineTo(19f, 5f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 21f, 7f)
-        lineTo(21f, 17f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 19f)
-        lineTo(5f, 19f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 17f)
-        close()
-        // 内嵌小窗
-        moveTo(13f, 12f); lineTo(19f, 12f); lineTo(19f, 17f); lineTo(13f, 17f); close()
-    }.build()
+val IconHistory: ImageVector get() = icon { sp {
+    moveTo(21.5f, 12f)
+    arcTo(9.5f, 9.5f, 0f, true, true, 12f, 21.5f)
+    arcTo(9.5f, 9.5f, 0f, true, true, 2.5f, 12f)
+    arcTo(9.5f, 9.5f, 0f, true, true, 21.5f, 12f)
+    moveTo(12f, 6.5f); lineTo(12f, 12f); lineTo(15.5f, 14f)
+}}
 
-/** 书籍/收藏集图标 — book.svg */
-val IconBook: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(4f, 19f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 6f, 17f)
-        lineTo(20f, 17f); lineTo(20f, 3f); lineTo(6f, 3f)
-        arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 4f, 5f)
-        lineTo(4f, 19f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 6f, 21f); lineTo(20f, 21f)
-        moveTo(9f, 7f); lineTo(15f, 7f); moveTo(9f, 11f); lineTo(13f, 11f)
-    }.build()
+val IconRank: ImageVector get() = icon { sp {
+    moveTo(4f, 20f); lineTo(4f, 13f); lineTo(8f, 13f); lineTo(8f, 20f)
+    moveTo(10f, 20f); lineTo(10f, 6f); lineTo(14f, 6f); lineTo(14f, 20f)
+    moveTo(16f, 20f); lineTo(16f, 9.5f); lineTo(20f, 9.5f); lineTo(20f, 20f)
+    moveTo(2.5f, 20f); lineTo(21.5f, 20f)
+}}
 
-/** 退出/登出图标 — out.svg */
-val IconOut: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(9f, 21f); lineTo(5f, 21f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 19f)
-        lineTo(3f, 5f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 3f); lineTo(9f, 3f)
-        moveTo(16f, 17f); lineTo(21f, 12f); lineTo(16f, 7f); moveTo(21f, 12f); lineTo(9f, 12f)
-    }.build()
+val IconBack: ImageVector get() = icon { sp {
+    moveTo(19f, 12f); lineTo(5f, 12f)
+    moveTo(11f, 6f); lineTo(5f, 12f); lineTo(11f, 18f)
+}}
 
-/** 主题调色盘图标 — paint.svg */
-val IconPaint: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(12f, 22f); arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 12f)
-        arcTo(10f, 10f, 0f, isMoreThanHalf = false, isPositiveArc = true, 22f, 12f)
-        curveTo(22f, 14.2f, 21f, 16f, 19f, 16f); curveTo(17f, 16f, 16f, 14.5f, 17f, 13f)
-        curveTo(18f, 11.5f, 16f, 10f, 14f, 11f)
-        moveTo(7f, 11f); arcTo(1f, 1f, 0f, isMoreThanHalf = true, isPositiveArc = true, 7f, 11.01f)
-        moveTo(10f, 8f); arcTo(1f, 1f, 0f, isMoreThanHalf = true, isPositiveArc = true, 10f, 8.01f)
-    }.build()
+val IconCancel: ImageVector get() = icon { sp {
+    moveTo(17.5f, 6.5f); lineTo(6.5f, 17.5f)
+    moveTo(6.5f, 6.5f); lineTo(17.5f, 17.5f)
+}}
 
-/** 福利/礼品图标 — welfare.svg */
-val IconWelfare: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(20f, 12f); lineTo(20f, 22f); lineTo(4f, 22f); lineTo(4f, 12f)
-        moveTo(22f, 7f); lineTo(2f, 7f); lineTo(2f, 12f); lineTo(22f, 12f); close()
-        moveTo(12f, 22f); lineTo(12f, 7f)
-        moveTo(12f, 7f); curveTo(12f, 7f, 9f, 3f, 7f, 3f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 9f, 7f)
-        moveTo(12f, 7f); curveTo(12f, 7f, 15f, 3f, 17f, 3f); arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 15f, 7f)
-    }.build()
+val IconMore: ImageVector get() = icon { fp {
+    moveTo(12f, 5.5f); arcTo(1.2f, 1.2f, 0f, true, true, 12f, 5.51f)
+    moveTo(12f, 12f); arcTo(1.2f, 1.2f, 0f, true, true, 12f, 12.01f)
+    moveTo(12f, 18.5f); arcTo(1.2f, 1.2f, 0f, true, true, 12f, 18.51f)
+}}
 
-/** 周历图标 — week.svg */
-val IconWeek: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(3f, 4f); lineTo(21f, 4f); lineTo(21f, 20f); lineTo(3f, 20f); close()
-        moveTo(16f, 2f); lineTo(16f, 6f); moveTo(8f, 2f); lineTo(8f, 6f)
-        moveTo(3f, 10f); lineTo(21f, 10f)
-        moveTo(7f, 14f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 7f, 14.01f)
-        moveTo(12f, 14f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 14.01f)
-        moveTo(17f, 14f); arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, 17f, 14.01f)
-    }.build()
+val IconHD: ImageVector get() = icon { sp {
+    moveTo(4f, 8f); lineTo(4f, 16f)
+    moveTo(4f, 12f); lineTo(8.5f, 12f)
+    moveTo(8.5f, 8f); lineTo(8.5f, 16f)
+    moveTo(12.5f, 8f); lineTo(12.5f, 16f)
+    moveTo(12.5f, 8f); curveTo(16.5f, 8f, 19f, 10f, 19f, 12f)
+    curveTo(19f, 14f, 16.5f, 16f, 12.5f, 16f)
+}}
 
-/** 上下交换图标 — up2down.svg */
-val IconSwap: ImageVector
-    get() = ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).path(
-        stroke = SolidColor(Color.Black), strokeLineWidth = 2.0f,
-        strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(17f, 4f); lineTo(17f, 20f); moveTo(13f, 16f); lineTo(17f, 20f); lineTo(21f, 16f)
-        moveTo(7f, 20f); lineTo(7f, 4f); moveTo(3f, 8f); lineTo(7f, 4f); lineTo(11f, 8f)
-    }.build()
+val IconNotice: ImageVector get() = icon { sp {
+    moveTo(18f, 8.5f)
+    arcTo(6f, 6f, 0f, false, false, 6f, 8.5f)
+    lineTo(4.5f, 16.5f); lineTo(19.5f, 16.5f); close()
+    moveTo(10f, 16.5f)
+    arcTo(2f, 2f, 0f, false, false, 14f, 16.5f)
+}}
+
+val IconFloating: ImageVector get() = icon { sp {
+    moveTo(3f, 7f); arcTo(2f, 2f, 0f, false, true, 5f, 5f)
+    lineTo(19f, 5f); arcTo(2f, 2f, 0f, false, true, 21f, 7f)
+    lineTo(21f, 17f); arcTo(2f, 2f, 0f, false, true, 19f, 19f)
+    lineTo(5f, 19f); arcTo(2f, 2f, 0f, false, true, 3f, 17f); close()
+    moveTo(13f, 12f); lineTo(19f, 12f); lineTo(19f, 17f); lineTo(13f, 17f); close()
+}}
+
+val IconBook: ImageVector get() = icon { sp {
+    moveTo(4f, 19f); arcTo(2f, 2f, 0f, false, true, 6f, 17f)
+    lineTo(20f, 17f); lineTo(20f, 3f); lineTo(6f, 3f)
+    arcTo(2f, 2f, 0f, false, false, 4f, 5f)
+    lineTo(4f, 19f); arcTo(2f, 2f, 0f, false, false, 6f, 21f); lineTo(20f, 21f)
+    moveTo(9f, 7f); lineTo(15f, 7f)
+    moveTo(9f, 11f); lineTo(13f, 11f)
+}}
+
+val IconOut: ImageVector get() = icon { sp {
+    moveTo(9f, 21f); lineTo(5f, 21f); arcTo(2f, 2f, 0f, false, true, 3f, 19f)
+    lineTo(3f, 5f); arcTo(2f, 2f, 0f, false, true, 5f, 3f); lineTo(9f, 3f)
+    moveTo(16f, 17f); lineTo(21f, 12f); lineTo(16f, 7f)
+    moveTo(21f, 12f); lineTo(9f, 12f)
+}}
+
+val IconPaint: ImageVector get() = icon { sp {
+    moveTo(12f, 21.5f); arcTo(9.5f, 9.5f, 0f, false, true, 2.5f, 12f)
+    arcTo(9.5f, 9.5f, 0f, false, true, 21.5f, 12f)
+    curveTo(21.5f, 14f, 20.5f, 15.5f, 18.5f, 15.5f)
+    curveTo(16.5f, 15.5f, 16f, 14f, 17f, 12.5f)
+    curveTo(18f, 11f, 16f, 9.5f, 14f, 10.5f)
+    moveTo(7.5f, 11f); arcTo(0.8f, 0.8f, 0f, true, true, 7.5f, 11.01f)
+    moveTo(10.5f, 7.5f); arcTo(0.8f, 0.8f, 0f, true, true, 10.5f, 7.51f)
+}}
+
+val IconWelfare: ImageVector get() = icon { sp {
+    moveTo(20f, 12f); lineTo(20f, 21f); lineTo(4f, 21f); lineTo(4f, 12f)
+    moveTo(21.5f, 7f); lineTo(2.5f, 7f); lineTo(2.5f, 12f); lineTo(21.5f, 12f); close()
+    moveTo(12f, 21f); lineTo(12f, 7f)
+    moveTo(12f, 7f); curveTo(12f, 7f, 9.5f, 3.5f, 7.5f, 3.5f)
+    arcTo(2f, 2f, 0f, false, false, 9.5f, 7f)
+    moveTo(12f, 7f); curveTo(12f, 7f, 14.5f, 3.5f, 16.5f, 3.5f)
+    arcTo(2f, 2f, 0f, false, true, 14.5f, 7f)
+}}
+
+val IconWeek: ImageVector get() = icon { sp {
+    moveTo(4f, 5f); lineTo(20f, 5f); arcTo(1f, 1f, 0f, false, true, 21f, 6f)
+    lineTo(21f, 19f); arcTo(1f, 1f, 0f, false, true, 20f, 20f)
+    lineTo(4f, 20f); arcTo(1f, 1f, 0f, false, true, 3f, 19f)
+    lineTo(3f, 6f); arcTo(1f, 1f, 0f, false, true, 4f, 5f)
+    moveTo(16f, 3f); lineTo(16f, 7f)
+    moveTo(8f, 3f); lineTo(8f, 7f)
+    moveTo(3f, 10f); lineTo(21f, 10f)
+}}
+
+val IconSwap: ImageVector get() = icon { sp {
+    moveTo(17f, 4f); lineTo(17f, 20f)
+    moveTo(13.5f, 16.5f); lineTo(17f, 20f); lineTo(20.5f, 16.5f)
+    moveTo(7f, 20f); lineTo(7f, 4f)
+    moveTo(3.5f, 7.5f); lineTo(7f, 4f); lineTo(10.5f, 7.5f)
+}}
+
+val IconCast: ImageVector get() = icon { sp {
+    moveTo(3f, 5.5f); lineTo(21f, 5.5f); lineTo(21f, 18.5f); lineTo(14f, 18.5f)
+    moveTo(3f, 18.5f); arcTo(0.5f, 0.5f, 0f, true, true, 3f, 18.51f)
+    moveTo(3f, 15f); arcTo(4f, 4f, 0f, false, true, 7f, 18.5f)
+    moveTo(3f, 11.5f); arcTo(7.5f, 7.5f, 0f, false, true, 10.5f, 18.5f)
+}}
+
+val IconCastActive: ImageVector get() = icon { sp {
+    moveTo(3f, 5.5f); lineTo(21f, 5.5f); lineTo(21f, 18.5f); lineTo(14f, 18.5f)
+    moveTo(3f, 18.5f); arcTo(0.6f, 0.6f, 0f, true, true, 3f, 18.51f)
+    moveTo(3f, 15f); arcTo(4f, 4f, 0f, false, true, 7f, 18.5f)
+    moveTo(3f, 11.5f); arcTo(7.5f, 7.5f, 0f, false, true, 10.5f, 18.5f)
+}}
+
+val IconFeedback: ImageVector get() = icon { sp {
+    moveTo(12f, 8f); lineTo(12f, 12.5f)
+    moveTo(12f, 16f); lineTo(12f, 16.01f)
+    moveTo(21.5f, 12f)
+    arcTo(9.5f, 9.5f, 0f, true, true, 12f, 21.5f)
+    arcTo(9.5f, 9.5f, 0f, true, true, 2.5f, 12f)
+    arcTo(9.5f, 9.5f, 0f, true, true, 21.5f, 12f)
+}}
+
+val IconMail: ImageVector get() = icon { sp {
+    moveTo(4f, 5.5f); lineTo(20f, 5.5f); arcTo(1.5f, 1.5f, 0f, false, true, 21.5f, 7f)
+    lineTo(21.5f, 17f); arcTo(1.5f, 1.5f, 0f, false, true, 20f, 18.5f)
+    lineTo(4f, 18.5f); arcTo(1.5f, 1.5f, 0f, false, true, 2.5f, 17f)
+    lineTo(2.5f, 7f); arcTo(1.5f, 1.5f, 0f, false, true, 4f, 5.5f)
+    moveTo(3f, 7f); lineTo(12f, 13f); lineTo(21f, 7f)
+}}

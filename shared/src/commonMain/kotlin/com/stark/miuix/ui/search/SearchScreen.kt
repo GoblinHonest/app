@@ -72,6 +72,7 @@ fun SearchScreen(
     val viewModel = AppContainer.searchViewModel
     val uiState by viewModel.uiState.collectAsState()
     val history by viewModel.searchHistory.collectAsState()
+    val suggestions by viewModel.suggestions.collectAsState()
 
     val initialQuery = when (val s = uiState) {
         is SearchUiState.Success -> s.keyword
@@ -141,6 +142,35 @@ fun SearchScreen(
             }
         }
         } // Box gradient
+
+        // 联想词下拉
+        if (suggestions.isNotEmpty() && uiState is SearchUiState.Idle) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignTokens.screenPadding)
+                    .clip(RoundedCornerShape(DesignTokens.radiusMd))
+                    .background(MiuixTheme.colorScheme.surface)
+            ) {
+                suggestions.forEach { suggestion ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                query = suggestion
+                                viewModel.search(suggestion)
+                            }
+                            .padding(horizontal = DesignTokens.spacingMd, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = suggestion,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
 
         when (val state = uiState) {
             is SearchUiState.Idle -> {

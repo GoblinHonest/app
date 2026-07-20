@@ -128,6 +128,7 @@ fun AppNavigation(
                     HomeScreen(
                         videoRepository = videoRepository,
                         sourceRepository = sourceRepository,
+                        userDataRepository = userDataRepository,
                         onNavigateToSearch = { navController.navigate(Screen.Search) },
                         onNavigateToCategory = { sourceName, categoryUrl ->
                             navController.navigate(Screen.Category(sourceName, UrlEncoder.encode(categoryUrl)))
@@ -155,7 +156,9 @@ fun AppNavigation(
                         onNavigateToSettings = { navController.navigate(Screen.Settings) },
                         onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
                             navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
-                        }
+                        },
+                        onNavigateToDownloads = { navController.navigate(Screen.Downloads) },
+                        onNavigateToSourceRepo = { navController.navigate(Screen.SourceRepo) }
                     )
                 }
 
@@ -216,6 +219,20 @@ fun AppNavigation(
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
+
+                composable<Screen.Downloads> {
+                    com.stark.miuix.ui.download.DownloadManageScreen(
+                        downloadManager = com.stark.miuix.di.AppContainer.downloadManager,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable<Screen.SourceRepo> {
+                    com.stark.miuix.ui.source.SourceRepoScreen(
+                        sourceRepoManager = com.stark.miuix.di.AppContainer.sourceRepoManager,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
 
@@ -250,15 +267,14 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface)
+            .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.85f))
             .navigationBarsPadding()
     ) {
-        // 顶部分割线
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(0.5.dp)
-                .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.12f))
+                .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.08f))
                 .align(Alignment.TopCenter)
         )
         Row(

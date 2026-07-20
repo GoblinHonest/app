@@ -12,7 +12,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,7 +33,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.ui.theme.DesignTokens
-import com.stark.miuix.util.AppLogger
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -42,12 +40,10 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 视频卡片 — 对标优酷 App 设计
+ * 视频海报卡片 v2
  *
- * 封面：2:3 竖向海报比例，左上角状态芯片（有更新/热搜），右上角标签（独播）
- * 封面底部：白色小字「更新至X话」
- * 卡片下方：进度文字 + 描述剪辑
- * 点击动画：0.96 缩放
+ * 2:3 竖向海报，底部 40% 渐变遮罩 + 标题/源名，
+ * 左上角状态芯片，按压 0.96 缩放反馈（150ms ease-out）。
  */
 @Composable
 fun VideoCard(
@@ -56,12 +52,11 @@ fun VideoCard(
     modifier: Modifier = Modifier,
     badge: String = ""
 ) {
-    // 使用 InteractionSource 正确捕获按下状态，触发 0.96 缩放反馈
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = tween(durationMillis = DesignTokens.animFast),
         label = "card_scale"
     )
 
@@ -69,14 +64,8 @@ fun VideoCard(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null  // 用 scale 替代 ripple
-            ) {
-                onClick()
-            }
+            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
     ) {
-        // —— 封面 ——
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -90,34 +79,33 @@ fun VideoCard(
             ) {
                 val ctx = LocalPlatformContext.current
                 AsyncImage(
-                    model = ImageRequest.Builder(ctx)
-                        .data(coverUrl)
-                        .build(),
+                    model = ImageRequest.Builder(ctx).data(coverUrl).build(),
                     contentDescription = searchResult.title,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    onError = { AppLogger.e("Image", "加载失败: $coverUrl") }
+                    contentScale = ContentScale.Crop
                 )
             } else {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(searchResult.title.take(2), style = MiuixTheme.textStyles.headline1, color = MiuixTheme.colorScheme.outline)
+                    Text(
+                        searchResult.title.take(2),
+                        style = MiuixTheme.textStyles.headline1,
+                        color = MiuixTheme.colorScheme.outline
+                    )
                 }
             }
 
-            // 封面底部渐变
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(72.dp)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f))
+                            listOf(DesignTokens.posterGradientStart, DesignTokens.posterGradientEnd)
                         )
                     )
             )
 
-            // 左上角状态芯片（有更新 / 已完结 / 热搜榜）
             val statusBadge = badge.ifBlank {
                 when {
                     searchResult.description.contains("全") -> "已完结"
@@ -130,39 +118,40 @@ fun VideoCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(5.dp)
-                        .background(
-                            badgeColor.copy(alpha = 0.92f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                        .padding(DesignTokens.spacingXs)
+                        .background(badgeColor.copy(alpha = 0.9f), RoundedCornerShape(DesignTokens.radiusXs))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(statusBadge, style = MiuixTheme.textStyles.footnote2, color = Color.White)
                 }
             }
 
-            // 底部更新信息
             if (searchResult.description.isNotBlank()) {
                 Text(
-                    text = searchResult.description.take(8),
+                    text = searchResult.description.take(10),
                     style = MiuixTheme.textStyles.footnote2,
-                    color = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 6.dp, bottom = 4.dp)
+                    color = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 6.dp, bottom = 4.dp)
                 )
             }
         }
 
-        // —— 封面下标题 ——
         Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
         Text(
             text = searchResult.title.ifBlank { searchResult.sourceName },
             style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.onBackground,
+            color = MiuixTheme.colorScheme.onSurface,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 0.dp)
+            overflow = TextOverflow.Ellipsis
         )
+        if (searchResult.sourceName.isNotBlank()) {
+            Text(
+                text = searchResult.sourceName,
+                style = MiuixTheme.textStyles.footnote2,
+                color = MiuixTheme.colorScheme.outline,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }

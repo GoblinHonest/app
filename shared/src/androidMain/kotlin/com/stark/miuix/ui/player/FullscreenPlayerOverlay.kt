@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -51,7 +52,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import com.stark.miuix.data.dlna.DlnaController
+import com.stark.miuix.data.dlna.DlnaState
+import com.stark.miuix.data.dlna.ssdp.MulticastLockManager
 import com.stark.miuix.ui.icons.IconBack
+import com.stark.miuix.ui.icons.IconCast
+import com.stark.miuix.ui.icons.IconCastActive
 import com.stark.miuix.ui.icons.IconExitFullscreen
 import com.stark.miuix.ui.icons.IconFloating
 import com.stark.miuix.ui.icons.IconHD
@@ -59,6 +65,7 @@ import com.stark.miuix.ui.icons.IconLock
 import com.stark.miuix.ui.icons.IconNext
 import com.stark.miuix.ui.icons.IconPause
 import com.stark.miuix.ui.icons.IconPlay
+import com.stark.miuix.ui.theme.DesignTokens
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -69,7 +76,8 @@ fun FullscreenPlayerOverlay(
     url: String,
     title: String,
     onExitFullscreen: () -> Unit,
-    isBuffering: Boolean = false
+    isBuffering: Boolean = false,
+    dlnaController: DlnaController? = null
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -85,6 +93,56 @@ fun FullscreenPlayerOverlay(
     var gestureText by remember { mutableStateOf("") }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var isLocked by remember { mutableStateOf(false) }
+
+    // ===== 投屏状态 =====
+    val dlnaState by dlnaController?.state?.collectAsState()
+        ?: androidx.compose.runtime.mutableStateOf<DlnaState>(DlnaState.Idle)
+    var showCastDialog by remember { mutableStateOf(false) }
+    val isCasting = dlnaState is DlnaState.Casting || dlnaState is DlnaState.Connecting
+
+    // 投屏对话框打开时获取多播锁，关闭时释放
+    LaunchedEffect(showCastDialog) {
+        if (showCastDialog) {
+            MulticastLockManager.acquire(context)
+        } else {
+            MulticastLockManager.release()
+        }
+    }
+
+    // 投屏开始时暂停并释放本地 ExoPlayer
+    LaunchedEffect(isCasting) {
+        if (isCasting) {
+            runCatching {
+                exoPlayer.pause()
+                exoPlayer.stop()
+            }
+        } else if (dlnaState is DlnaState.Idle) {
+            // 投屏断开后恢复本地播放
+            runCatching {
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                exoPlayer.play()
+            }
+        }
+    }
+
+    // 投屏对话框
+    if (dlnaController != null) {
+        CastDialog(
+            visible = showCastDialog,
+            dlnaController = dlnaController,
+            onDismiss = { showCastDialog = false },
+            onSelectDevice = { device ->
+                showCastDialog = false
+                dlnaController.cast(
+                    device = device,
+                    mediaUrl = url,
+                    title = title,
+                    startPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+                )
+            }
+        )
+    }
 
     // 全屏 + 隐藏系统栏 + 防止熄屏 + 保存亮度
     val savedBrightness = remember {
@@ -292,7 +350,7 @@ fun FullscreenPlayerOverlay(
                 }
 
                 // 中央：播放/暂停（缓冲时隐藏，避免与转圈重叠）
-                if (!isBuffering) {
+                if (!isBuffering && !isCasting) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -313,6 +371,22 @@ fun FullscreenPlayerOverlay(
                     }
                 }
 
+                // 投屏中状态提示
+                if (isCasting) {
+                    val castingState = dlnaState
+                    val castingText = when (castingState) {
+                        is DlnaState.Connecting -> "正在连接 ${castingState.device.friendlyName}…"
+                        is DlnaState.Casting -> "投屏到 ${castingState.device.friendlyName}"
+                        else -> "投屏中"
+                    }
+                    Box(modifier = Modifier.align(Alignment.Center)
+                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 20.dp, vertical = 12.dp)) {
+                        Text(text = castingText,
+                            style = MiuixTheme.textStyles.body2, color = Color.White)
+                    }
+                }
+
                 // ====== 底部控制区 ======
                 Column(
                     modifier = Modifier
@@ -327,9 +401,15 @@ fun FullscreenPlayerOverlay(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // 当前时间
+                        // 当前时间（投屏时显示远端进度）
+                        val displayPosition = if (isCasting) {
+                            (dlnaState as? DlnaState.Casting)?.positionMs ?: 0L
+                        } else currentPosition
+                        val displayDuration = if (isCasting) {
+                            (dlnaState as? DlnaState.Casting)?.durationMs?.takeIf { it > 0 } ?: 0L
+                        } else duration
                         Text(
-                            text = fmtTime(currentPosition),
+                            text = fmtTime(displayPosition),
                             style = MiuixTheme.textStyles.footnote1,
                             color = Color.White.copy(alpha = 0.9f)
                         )
@@ -339,15 +419,20 @@ fun FullscreenPlayerOverlay(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(20.dp)
-                                .pointerInput(duration) {
+                                .pointerInput(displayDuration) {
                                     detectTapGestures { offset ->
                                         val fraction = (offset.x / size.width).coerceIn(0f, 1f)
-                                        exoPlayer.seekTo((fraction * duration).toLong())
+                                        val targetMs = (fraction * displayDuration).toLong()
+                                        if (isCasting) {
+                                            dlnaController?.seekTo(targetMs)
+                                        } else {
+                                            exoPlayer.seekTo(targetMs)
+                                        }
                                     }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
+                            val progress = if (displayDuration > 0) displayPosition.toFloat() / displayDuration else 0f
                             // 背景轨道
                             Box(
                                 modifier = Modifier
@@ -383,7 +468,7 @@ fun FullscreenPlayerOverlay(
 
                         // 总时长
                         Text(
-                            text = fmtTime(duration),
+                            text = fmtTime(displayDuration),
                             style = MiuixTheme.textStyles.footnote1,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -402,22 +487,33 @@ fun FullscreenPlayerOverlay(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // 播放/暂停：投屏时控制 DlnaController，本地时控制 ExoPlayer
+                            val playingNow = if (isCasting) {
+                                (dlnaState as? DlnaState.Casting)?.isPlaying == true
+                            } else isPlaying
                             Image(
-                                painter = rememberVectorPainter(if (isPlaying) IconPause else IconPlay),
-                                contentDescription = if (isPlaying) "暂停" else "播放",
+                                painter = rememberVectorPainter(if (playingNow) IconPause else IconPlay),
+                                contentDescription = if (playingNow) "暂停" else "播放",
                                 colorFilter = ColorFilter.tint(Color.White),
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clickable {
-                                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                        isPlaying = exoPlayer.isPlaying
+                                        if (isCasting) {
+                                            if (playingNow) dlnaController?.pause() else dlnaController?.resume()
+                                        } else {
+                                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                            isPlaying = exoPlayer.isPlaying
+                                        }
                                     }
                                     .padding(4.dp)
                             )
+                            // 下一集（投屏时禁用）
                             Image(
                                 painter = rememberVectorPainter(IconNext),
                                 contentDescription = "下一集",
-                                colorFilter = ColorFilter.tint(Color.White),
+                                colorFilter = ColorFilter.tint(
+                                    if (isCasting) Color.White.copy(alpha = 0.3f) else Color.White
+                                ),
                                 modifier = Modifier
                                     .size(32.dp)
                                     .padding(4.dp)
@@ -451,6 +547,28 @@ fun FullscreenPlayerOverlay(
                                 colorFilter = ColorFilter.tint(Color.White),
                                 modifier = Modifier.size(28.dp).padding(2.dp)
                             )
+                            // 投屏
+                            if (dlnaController != null && dlnaController.isPlatformSupported) {
+                                Image(
+                                    painter = rememberVectorPainter(
+                                        if (isCasting) IconCastActive else IconCast
+                                    ),
+                                    contentDescription = if (isCasting) "断开投屏" else "投屏",
+                                    colorFilter = ColorFilter.tint(
+                                        if (isCasting) DesignTokens.brandBlue else Color.White
+                                    ),
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .padding(2.dp)
+                                        .clickable {
+                                            if (isCasting) {
+                                                dlnaController.stopCasting()
+                                            } else {
+                                                showCastDialog = true
+                                            }
+                                        }
+                                )
+                            }
                             // 退出全屏
                             Image(
                                 painter = rememberVectorPainter(IconExitFullscreen),

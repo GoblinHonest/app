@@ -108,6 +108,34 @@ fun SourceCard(
                     color = MiuixTheme.colorScheme.outline,
                     modifier = Modifier.padding(start = if (source.sourceGroup.isNotBlank()) 8.dp else 0.dp)
                 )
+                if (source.lastCheckStatus.isNotBlank()) {
+                    val statusColor = when (source.lastCheckStatus) {
+                        "OK" -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                        "TIMEOUT" -> androidx.compose.ui.graphics.Color(0xFFFF9800)
+                        else -> MiuixTheme.colorScheme.error
+                    }
+                    val statusLabel = when (source.lastCheckStatus) {
+                        "OK" -> "正常"
+                        "TIMEOUT" -> "超时"
+                        "PARSE_ERROR" -> "解析错误"
+                        "UNREACHABLE" -> "不可达"
+                        else -> source.lastCheckStatus
+                    }
+                    Text(
+                        text = statusLabel,
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = statusColor,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                    if (source.lastCheckLatencyMs > 0) {
+                        Text(
+                            text = "${source.lastCheckLatencyMs}ms",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = MiuixTheme.colorScheme.outline,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.weight(1f))
 
                 if (!showDeleteConfirm) {

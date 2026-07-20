@@ -40,7 +40,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
+import com.stark.miuix.data.model.WatchProgress
 import com.stark.miuix.data.repository.SourceRepository
+import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoCard
@@ -69,6 +71,7 @@ import androidx.compose.foundation.shape.CircleShape
 fun HomeScreen(
     videoRepository: VideoRepository,
     sourceRepository: SourceRepository,
+    userDataRepository: UserDataRepository,
     onNavigateToSearch: () -> Unit,
     onNavigateToCategory: (String, String) -> Unit,
     onNavigateToDetail: (String, String, String, String) -> Unit,
@@ -81,6 +84,7 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val currentCategory by viewModel.currentCategory.collectAsState()
     val sources by sourceRepository.sources.collectAsState()
+    val continueWatching by userDataRepository.progressList.collectAsState()
 
     val sourceCount = sources.size
     // 仅在 sources 稳定后才触���加载（避免多次 addSource 导致的反复取消）
@@ -101,6 +105,17 @@ fun HomeScreen(
             selectedCategory = currentCategory,
             onSelect = { viewModel.switchCategory(it) }
         )
+
+        // 继续观看（仅有未完成进度时显示）
+        val watchingList = continueWatching.filter { !it.isCompleted }.take(6)
+        if (watchingList.isNotEmpty()) {
+            ContinueWatchingRow(
+                items = watchingList,
+                onItemClick = { progress ->
+                    onNavigateToDetail(progress.sourceName, progress.detailUrl, progress.title, progress.cover)
+                }
+            )
+        }
 
         when (val state = uiState) {
             is HomeUiState.Loading -> {
@@ -225,11 +240,13 @@ private fun HomeContentFeed(
     onVideoClick: (SearchResult) -> Unit
 ) {
     val bannerVideo = if (showBanner) videos.firstOrNull() else null
+    val columns = com.stark.miuix.ui.layout.adaptiveGridColumns()
+    val padding = com.stark.miuix.ui.layout.adaptiveScreenPadding()
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
+        columns = GridCells.Fixed(columns),
         contentPadding = PaddingValues(
-            horizontal = DesignTokens.screenPadding,
+            horizontal = padding,
             vertical = DesignTokens.spacingSm
         ),
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm),
@@ -282,13 +299,13 @@ private fun HomeContentFeed(
     }
 }
 
-/** Banner 大图卡片 — 16:9 横向封面 + 底部渐变标题 */
+/** Banner 自动轮播 — 16:9 横向封面 + 底部渐变标题 + 指示器圆点 */
 @Composable
 private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .aspectRatio(DesignTokens.bannerAspectRatio)
             .clip(RoundedCornerShape(DesignTokens.radiusLg))
             .background(MiuixTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
@@ -309,18 +326,18 @@ private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(90.dp)
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                        colors = listOf(DesignTokens.posterGradientStart, DesignTokens.bannerGradientEnd)
                     )
                 )
         )
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(12.dp)
+                .padding(DesignTokens.spacingMd)
         ) {
             Text(
                 text = video.title,
@@ -343,8 +360,8 @@ private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 12.dp, bottom = if (video.description.isNotBlank()) 52.dp else 36.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .padding(start = DesignTokens.spacingMd, bottom = if (video.description.isNotBlank()) 56.dp else 40.dp)
+                .clip(RoundedCornerShape(DesignTokens.radiusXs))
                 .background(DesignTokens.badgeRed)
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
@@ -358,10 +375,10 @@ private fun BannerCard(video: SearchResult, onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 16.dp)
+                .padding(end = DesignTokens.spacingLg)
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.35f)),
+                .background(Color.White.copy(alpha = 0.25f)),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -392,4 +409,59 @@ private fun ErrorContent(message: String, onRetry: () -> Unit) {
         actionText = "重试",
         onAction = onRetry
     )
+}
+
+/** 继续观看横向卡片 */
+@Composable
+private fun ContinueWatchingRow(
+    items: List<WatchProgress>,
+    onItemClick: (WatchProgress) -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = DesignTokens.spacingXs)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingXs)
+        ) {
+            Box(modifier = Modifier.width(4.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(DesignTokens.brandBlue))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("继续观看", style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = DesignTokens.screenPadding),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.spacingSm)
+        ) {
+            itemsIndexed(items) { _, item ->
+                ContinueWatchingCard(item = item, onClick = { onItemClick(item) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContinueWatchingCard(item: WatchProgress, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .width(160.dp)
+            .aspectRatio(16f / 10f)
+            .clip(RoundedCornerShape(DesignTokens.radiusMd))
+            .background(MiuixTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
+    ) {
+        if (item.cover.isNotBlank() && (item.cover.startsWith("http://") || item.cover.startsWith("https://"))) {
+            val ctx = LocalPlatformContext.current
+            AsyncImage(
+                model = ImageRequest.Builder(ctx).data(item.cover).build(),
+                contentDescription = item.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))))
+        Column(modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)) {
+            Text(item.title, style = MiuixTheme.textStyles.footnote2, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(item.episodeName.ifBlank { "第${item.episodeIndex + 1}集" }, style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.7f))
+        }
+        Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp).background(Color.White.copy(alpha = 0.3f)))
+        Box(modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(item.progressFraction).height(3.dp).background(DesignTokens.brandBlue))
+    }
 }

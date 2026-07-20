@@ -16,9 +16,11 @@
 
 package com.stark.miuix.data.storage
 
+import com.stark.miuix.data.model.DownloadTask
 import com.stark.miuix.data.model.Favorite
 import com.stark.miuix.data.model.VideoSource
 import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.data.model.WatchProgress
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -70,7 +72,80 @@ class LocalStorage(private val basePath: String) {
         val content = readFile("$basePath/history.json") ?: return emptyList()
         return runCatching { json.decodeFromString<List<WatchHistory>>(content) }.getOrDefault(emptyList())
     }
+
+    /** 保存观看进度列表（断点续播） */
+    fun saveProgressList(progressList: List<WatchProgress>) {
+        writeFile("$basePath/progress.json", json.encodeToString(progressList))
+    }
+
+    /** 读取观看进度列表 */
+    fun loadProgressList(): List<WatchProgress> {
+        val content = readFile("$basePath/progress.json") ?: return emptyList()
+        return runCatching { json.decodeFromString<List<WatchProgress>>(content) }.getOrDefault(emptyList())
+    }
+
+    /** 保存下载任务列表 */
+    fun saveDownloads(downloads: List<DownloadTask>) {
+        writeFile("$basePath/downloads.json", json.encodeToString(downloads))
+    }
+
+    /** 读取下载任务列表 */
+    fun loadDownloads(): List<DownloadTask> {
+        val content = readFile("$basePath/downloads.json") ?: return emptyList()
+        return runCatching { json.decodeFromString<List<DownloadTask>>(content) }.getOrDefault(emptyList())
+    }
+
+    /** 保存用户设置（键值对 JSON） */
+    fun saveSettings(settings: Map<String, String>) {
+        writeFile("$basePath/settings.json", json.encodeToString(settings))
+    }
+
+    /** 读取用户设置 */
+    fun loadSettings(): Map<String, String> {
+        val content = readFile("$basePath/settings.json") ?: return emptyMap()
+        return runCatching { json.decodeFromString<Map<String, String>>(content) }.getOrDefault(emptyMap())
+    }
+
+    /** 导出所有用户数据为 JSON 字符串（备份用） */
+    fun exportAllData(): String {
+        val data = BackupData(
+            sources = loadSources(),
+            favorites = loadFavorites(),
+            history = loadHistory(),
+            progressList = loadProgressList(),
+            downloads = loadDownloads(),
+            settings = loadSettings(),
+            version = BACKUP_VERSION
+        )
+        return json.encodeToString(data)
+    }
+
+    /** 从备份 JSON 恢复所有数据 */
+    fun importAllData(jsonString: String): Result<Int> = runCatching {
+        val data = json.decodeFromString<BackupData>(jsonString)
+        saveSources(data.sources)
+        saveFavorites(data.favorites)
+        saveHistory(data.history)
+        saveProgressList(data.progressList)
+        saveDownloads(data.downloads)
+        saveSettings(data.settings)
+        data.sources.size + data.favorites.size + data.history.size
+    }
 }
+
+/** 备份数据结构 */
+@Serializable
+private data class BackupData(
+    val sources: List<VideoSource> = emptyList(),
+    val favorites: List<Favorite> = emptyList(),
+    val history: List<WatchHistory> = emptyList(),
+    val progressList: List<WatchProgress> = emptyList(),
+    val downloads: List<DownloadTask> = emptyList(),
+    val settings: Map<String, String> = emptyMap(),
+    val version: Int = 1
+)
+
+private const val BACKUP_VERSION = 1
 
 /** 跨平台文件读写 */
 expect fun writeFile(path: String, content: String)

@@ -17,6 +17,7 @@
 package com.stark.miuix.data.source
 
 import com.stark.miuix.data.model.Episode
+import com.stark.miuix.data.model.PlayLine
 import com.stark.miuix.data.model.SearchResult
 import com.stark.miuix.data.model.Video
 import com.stark.miuix.data.model.VideoSource
@@ -183,20 +184,29 @@ class SourceEngineImpl(
         val description = item["vod_content"]?.jsonPrimitive?.content
             ?: item["vod_blurb"]?.jsonPrimitive?.content ?: ""
         val status = item["vod_remarks"]?.jsonPrimitive?.content ?: ""
+        val year = item["vod_year"]?.jsonPrimitive?.content ?: ""
+        val area = item["vod_area"]?.jsonPrimitive?.content ?: ""
+        val genres = (item["vod_class"]?.jsonPrimitive?.content ?: "")
+            .split(Regex("[/,，]")).map { it.trim() }.filter { it.isNotBlank() }
 
-        // 解析 vod_play_url → Episodes
         val playUrlRaw = item["vod_play_url"]?.jsonPrimitive?.content ?: ""
-        val episodes = parsePlayUrl(playUrlRaw)
+        val playFromRaw = item["vod_play_from"]?.jsonPrimitive?.content ?: ""
+        val playLines = parsePlayLines(playUrlRaw, playFromRaw)
+        val episodes = playLines.firstOrNull()?.episodes ?: parsePlayUrl(playUrlRaw)
 
         return Video(
             id = url.hashCode().toString(),
             title = title,
             cover = cover,
-            description = description.replace(Regex("<[^>]+>"), ""), // 去除 HTML 标签
+            description = description.replace(Regex("<[^>]+>"), ""),
             status = status,
             sourceName = source.sourceName,
             detailUrl = url,
-            episodes = episodes
+            episodes = episodes,
+            playLines = playLines,
+            year = year,
+            area = area,
+            genres = genres
         )
     }
 
@@ -219,6 +229,39 @@ class SourceEngineImpl(
                 )
             } else null
         }
+    }
+
+    /**
+     * 解析多线路播放地址
+     *
+     * MacCMS 多线路格式：
+     * - vod_play_from: "线路1$$$线路2$$$线路3"
+     * - vod_play_url: "集1$url#集2$url$$$集1$url#集2$url$$$集1$url#集2$url"
+     *
+     * 每个 $$$ 分隔的段对应一条线路。
+     */
+    private fun parsePlayLines(playUrlRaw: String, playFromRaw: String): List<PlayLine> {
+        if (playUrlRaw.isBlank()) return emptyList()
+
+        val urlSegments = playUrlRaw.split("\\$\\$\\$".toRegex())
+        val fromSegments = if (playFromRaw.isNotBlank()) {
+            playFromRaw.split("\\$\\$\\$".toRegex())
+        } else {
+            urlSegments.indices.map { "线路${it + 1}" }
+        }
+
+        return urlSegments.mapIndexed { index, segment ->
+            val episodes = segment.split("#").mapIndexedNotNull { epIndex, epSegment ->
+                val parts = epSegment.split("$", limit = 2)
+                if (parts.size == 2) {
+                    Episode(name = parts[0].trim(), url = parts[1].trim(), index = epIndex)
+                } else null
+            }
+            PlayLine(
+                name = fromSegments.getOrNull(index)?.trim() ?: "线路${index + 1}",
+                episodes = episodes
+            )
+        }.filter { it.episodes.isNotEmpty() }
     }
 
     /**

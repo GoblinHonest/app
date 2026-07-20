@@ -75,6 +75,14 @@ sealed class Screen {
     /** 设置页 */
     @Serializable
     data object Settings : Screen()
+
+    /** 下载管理 */
+    @Serializable
+    data object Downloads : Screen()
+
+    /** 在线源仓库 */
+    @Serializable
+    data object SourceRepo : Screen()
 }
 
 /**

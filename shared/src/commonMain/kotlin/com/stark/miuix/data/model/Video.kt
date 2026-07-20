@@ -45,5 +45,10 @@ data class Video(
     val detailUrl: String = "",
     val episodes: List<Episode> = emptyList(),
     val category: String = "",
-    val updateTime: String = ""
+    val updateTime: String = "",
+    val playLines: List<PlayLine> = emptyList(),
+    val subtitles: List<Subtitle> = emptyList(),
+    val year: String = "",
+    val area: String = "",
+    val genres: List<String> = emptyList()
 )
