@@ -163,7 +163,8 @@ fun AppNavigation(
                             navController.navigate(Screen.Detail(sourceName, UrlEncoder.encode(detailUrl), title, UrlEncoder.encode(coverUrl)))
                         },
                         onNavigateToDownloads = { navController.navigate(Screen.Downloads) },
-                        onNavigateToSourceRepo = { navController.navigate(Screen.SourceRepo) }
+                        onNavigateToSourceRepo = { navController.navigate(Screen.SourceRepo) },
+                        onNavigateToSearch = { navController.navigate(Screen.Search) }
                     )
                 }
 
