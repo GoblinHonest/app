@@ -1,17 +1,23 @@
 # CineHub / miuix-app 打包工作流
-# - push / PR：打 Debug APK 并上传 Artifact
-# - tag v*：额外打 Release APK 并创建 GitHub Release
-# - workflow_dispatch：手动触发完整打包
+# 仅手动触发：Actions → Build → Run workflow
+# - 默认打 Debug + Release APK 并上传 Artifact
+# - 可选勾选 create_release：从当前分支创建 GitHub Release 并挂 APK
 
 name: Build
 
 on:
-  push:
-    branches: [main, master]
-    tags: ["v*"]
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: "创建 GitHub Release 并上传 APK"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release 标签（如 v1.0.1，仅 create_release 时使用）"
+        required: false
+        type: string
+        default: ""
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
@@ -138,7 +144,7 @@ jobs:
   release:
     name: GitHub Release
     needs: [android]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ inputs.create_release == true }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -152,12 +158,23 @@ jobs:
           name: android-apk
           path: release-assets
 
+      - name: Resolve release tag
+        id: tag
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="build-$(date -u +%Y%m%d-%H%M%S)"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
           files: release-assets/*
           generate_release_notes: true
           draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          prerelease: ${{ contains(steps.tag.outputs.tag, 'alpha') || contains(steps.tag.outputs.tag, 'beta') || contains(steps.tag.outputs.tag, 'rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
