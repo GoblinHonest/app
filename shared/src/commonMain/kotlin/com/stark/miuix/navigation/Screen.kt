@@ -83,6 +83,10 @@ sealed class Screen {
     /** 在线源仓库 */
     @Serializable
     data object SourceRepo : Screen()
+
+    /** 观看历史 */
+    @Serializable
+    data object History : Screen()
 }
 
 /**

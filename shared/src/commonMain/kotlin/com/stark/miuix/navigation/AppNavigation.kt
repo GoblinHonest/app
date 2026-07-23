@@ -164,7 +164,8 @@ fun AppNavigation(
                         },
                         onNavigateToDownloads = { navController.navigate(Screen.Downloads) },
                         onNavigateToSourceRepo = { navController.navigate(Screen.SourceRepo) },
-                        onNavigateToSearch = { navController.navigate(Screen.Search) }
+                        onNavigateToSearch = { navController.navigate(Screen.Search) },
+                        onNavigateToHistory = { navController.navigate(Screen.History) }
                     )
                 }
 
@@ -237,6 +238,23 @@ fun AppNavigation(
                     com.stark.miuix.ui.source.SourceRepoScreen(
                         sourceRepoManager = com.stark.miuix.di.AppContainer.sourceRepoManager,
                         onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable<Screen.History> {
+                    com.stark.miuix.ui.history.HistoryScreen(
+                        userDataRepository = userDataRepository,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToDetail = { sourceName, detailUrl, title, coverUrl ->
+                            navController.navigate(
+                                Screen.Detail(
+                                    sourceName,
+                                    UrlEncoder.encode(detailUrl),
+                                    title,
+                                    UrlEncoder.encode(coverUrl)
+                                )
+                            )
+                        }
                     )
                 }
             }
