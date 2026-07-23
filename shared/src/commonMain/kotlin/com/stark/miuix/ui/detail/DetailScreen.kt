@@ -41,6 +41,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,6 +68,7 @@ import com.stark.miuix.data.model.Episode
 import com.stark.miuix.data.model.Favorite
 import com.stark.miuix.data.model.Video
 import com.stark.miuix.data.model.WatchHistory
+import com.stark.miuix.data.model.WatchProgress
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.data.repository.UserDataRepository
 import com.stark.miuix.data.repository.VideoRepository
@@ -83,9 +85,11 @@ import com.stark.miuix.ui.icons.IconSettings
 import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.player.FullscreenControls
 import com.stark.miuix.ui.player.InlineVideoPlayer
+import com.stark.miuix.ui.player.releaseSharedPlayer
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.AppBackHandler
 import com.stark.miuix.util.UrlEncoder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -115,18 +119,28 @@ fun DetailScreen(
     val coroutineScope = rememberCoroutineScope()
     var descExpanded by remember { mutableStateOf(false) }
     var episodesExpanded by remember { mutableStateOf(false) }
-    var selectedEpisodeIndex by remember { mutableStateOf(-1) }
+    var selectedEpisodeIndex by remember { mutableStateOf(0) }
     var selectedLineIndex by remember { mutableStateOf(0) }
     var resolvedVideoUrl by remember { mutableStateOf<String?>(null) }
-    var playerLoading by remember { mutableStateOf(false) }
+    var playerLoading by remember { mutableStateOf(true) }
     var playerError by remember { mutableStateOf<String?>(null) }
     var inlinePlayerPosition by remember { mutableLongStateOf(0L) }
+    var inlinePlayerDuration by remember { mutableLongStateOf(0L) }
+    var resumePositionMs by remember { mutableLongStateOf(0L) }
     var isPlayerFullscreen by remember { mutableStateOf(false) }
     var isVideoBuffering by remember { mutableStateOf(false) }
     var episodesReversed by remember { mutableStateOf(false) }
+    var autoPlayStarted by remember(detailUrl) { mutableStateOf(false) }
 
     LaunchedEffect(detailUrl) {
         viewModel.loadDetail(sourceName, decodedUrl)
+        autoPlayStarted = false
+        resolvedVideoUrl = null
+        playerLoading = true
+        playerError = null
+        selectedEpisodeIndex = 0
+        selectedLineIndex = 0
+        resumePositionMs = 0L
     }
 
     // 返回优先级：关弹层 → 退出全屏 → 离开详情页
@@ -140,8 +154,15 @@ fun DetailScreen(
         isPlayerFullscreen = false
     }
 
-    fun playEpisode(src: String, index: Int, episode: Episode) {
+    fun playEpisode(
+        src: String,
+        index: Int,
+        episode: Episode,
+        startMs: Long = 0L,
+        updateHistory: Boolean = true
+    ) {
         selectedEpisodeIndex = index
+        resumePositionMs = startMs.coerceAtLeast(0L)
         playerLoading = true
         playerError = null
         coroutineScope.launch {
@@ -150,12 +171,112 @@ fun DetailScreen(
                 onSuccess = { streamUrl ->
                     resolvedVideoUrl = streamUrl
                     playerLoading = false
+                    if (updateHistory) {
+                        val video = (uiState as? DetailUiState.Success)?.video
+                        userDataRepository.addWatchHistory(
+                            WatchHistory(
+                                videoId = videoId,
+                                title = video?.title?.ifBlank { initialTitle } ?: initialTitle,
+                                cover = video?.cover?.ifBlank { decodedCover } ?: decodedCover,
+                                sourceName = sourceName,
+                                detailUrl = decodedUrl,
+                                lastEpisode = episode.name.ifBlank { "第${index + 1}集" }
+                            )
+                        )
+                        userDataRepository.saveProgress(
+                            WatchProgress(
+                                videoId = videoId,
+                                episodeIndex = index,
+                                episodeName = episode.name.ifBlank { "第${index + 1}集" },
+                                positionMs = startMs.coerceAtLeast(0L),
+                                durationMs = inlinePlayerDuration,
+                                sourceName = sourceName,
+                                detailUrl = decodedUrl,
+                                title = video?.title?.ifBlank { initialTitle } ?: initialTitle,
+                                cover = video?.cover?.ifBlank { decodedCover } ?: decodedCover
+                            )
+                        )
+                    }
                 },
                 onFailure = { e ->
                     playerLoading = false
                     playerError = e.message ?: "播放地址解析失败"
                 }
             )
+        }
+    }
+
+    // 播放中定期保存进度（续播）
+    LaunchedEffect(resolvedVideoUrl, selectedEpisodeIndex, selectedLineIndex) {
+        if (resolvedVideoUrl == null) return@LaunchedEffect
+        while (true) {
+            delay(5_000)
+            val video = (uiState as? DetailUiState.Success)?.video ?: continue
+            val episodes = if (video.playLines.isNotEmpty() &&
+                selectedLineIndex in video.playLines.indices
+            ) {
+                video.playLines[selectedLineIndex].episodes
+            } else {
+                video.episodes
+            }
+            val ep = episodes.getOrNull(selectedEpisodeIndex)
+            if (ep != null && inlinePlayerPosition > 0L) {
+                userDataRepository.saveProgress(
+                    WatchProgress(
+                        videoId = videoId,
+                        episodeIndex = selectedEpisodeIndex,
+                        episodeName = ep.name.ifBlank { "第${selectedEpisodeIndex + 1}集" },
+                        positionMs = inlinePlayerPosition,
+                        durationMs = inlinePlayerDuration,
+                        sourceName = sourceName,
+                        detailUrl = decodedUrl,
+                        title = video.title.ifBlank { initialTitle },
+                        cover = video.cover.ifBlank { decodedCover }
+                    )
+                )
+                userDataRepository.addWatchHistory(
+                    WatchHistory(
+                        videoId = videoId,
+                        title = video.title.ifBlank { initialTitle },
+                        cover = video.cover.ifBlank { decodedCover },
+                        sourceName = sourceName,
+                        detailUrl = decodedUrl,
+                        lastEpisode = ep.name.ifBlank { "第${selectedEpisodeIndex + 1}集" },
+                        progress = if (inlinePlayerDuration > 0) {
+                            (inlinePlayerPosition.toFloat() / inlinePlayerDuration).coerceIn(0f, 1f)
+                        } else 0f
+                    )
+                )
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            // 离开详情时落盘最后进度并释放共享播放器
+            val video = (uiState as? DetailUiState.Success)?.video
+            val episodes = video?.let {
+                if (it.playLines.isNotEmpty() && selectedLineIndex in it.playLines.indices) {
+                    it.playLines[selectedLineIndex].episodes
+                } else it.episodes
+            }.orEmpty()
+            val ep = episodes.getOrNull(selectedEpisodeIndex)
+            if (video != null && ep != null && inlinePlayerPosition > 0L) {
+                userDataRepository.saveProgress(
+                    WatchProgress(
+                        videoId = videoId,
+                        episodeIndex = selectedEpisodeIndex,
+                        episodeName = ep.name.ifBlank { "第${selectedEpisodeIndex + 1}集" },
+                        positionMs = inlinePlayerPosition,
+                        durationMs = inlinePlayerDuration,
+                        sourceName = sourceName,
+                        detailUrl = decodedUrl,
+                        title = video.title.ifBlank { initialTitle },
+                        cover = video.cover.ifBlank { decodedCover }
+                    )
+                )
+            }
+            releaseSharedPlayer()
         }
     }
 
@@ -185,71 +306,102 @@ fun DetailScreen(
 
                 is DetailUiState.Success -> {
                     val video = state.video
-                    val displayEpisodes = remember(video, selectedLineIndex, episodesReversed) {
-                        val base = if (video.playLines.isNotEmpty() &&
+                    val lineEpisodes = remember(video, selectedLineIndex) {
+                        if (video.playLines.isNotEmpty() &&
                             selectedLineIndex in video.playLines.indices
                         ) {
                             video.playLines[selectedLineIndex].episodes
                         } else {
                             video.episodes
                         }
-                        if (episodesReversed) base.asReversed() else base
+                    }
+                    // 宫格展示用（可倒序），实际播放索引始终对应 lineEpisodes 正序
+                    val displayEpisodes = remember(lineEpisodes, episodesReversed) {
+                        if (episodesReversed) lineEpisodes.asReversed() else lineEpisodes
                     }
 
-                    LaunchedEffect(video) {
-                        userDataRepository.addWatchHistory(
-                            WatchHistory(
-                                videoId = videoId,
-                                title = video.title,
-                                cover = video.cover.ifBlank { decodedCover },
-                                sourceName = sourceName,
-                                detailUrl = decodedUrl
-                            )
+                    // 进入详情：默认第一集；有续播记录则恢复集数与进度
+                    LaunchedEffect(video, lineEpisodes) {
+                        if (autoPlayStarted || lineEpisodes.isEmpty()) return@LaunchedEffect
+                        autoPlayStarted = true
+                        val progress = userDataRepository.getProgress(videoId)
+                        val targetIndex = progress
+                            ?.episodeIndex
+                            ?.takeIf { it in lineEpisodes.indices }
+                            ?: 0
+                        val startMs = progress
+                            ?.takeIf { !it.isCompleted && it.episodeIndex == targetIndex }
+                            ?.positionMs
+                            ?.coerceAtLeast(0L)
+                            ?: 0L
+                        playEpisode(
+                            src = state.currentSource,
+                            index = targetIndex,
+                            episode = lineEpisodes[targetIndex],
+                            startMs = startMs,
+                            updateHistory = true
                         )
                     }
 
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // 顶区：播放中显示播放器，否则显示宽海报
-                        val currentUrl = resolvedVideoUrl
-                        if (currentUrl != null) {
-                            Box(modifier = Modifier.fillMaxWidth()) {
+                        // 顶部常驻播放器（无海报）
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            val currentUrl = resolvedVideoUrl
+                            if (currentUrl != null) {
                                 InlineVideoPlayer(
                                     url = currentUrl,
-                                    title = video.title,
+                                    title = video.title.ifBlank { initialTitle },
                                     modifier = Modifier.fillMaxWidth(),
                                     onRequestFullscreen = { isPlayerFullscreen = true },
                                     isLoading = playerLoading,
                                     errorMessage = playerError,
                                     onPositionChanged = { pos -> inlinePlayerPosition = pos },
-                                    isFullscreen = false
+                                    isFullscreen = false,
+                                    startPositionMs = resumePositionMs,
+                                    onDurationChanged = { d -> inlinePlayerDuration = d }
                                 )
-                                IconButton(
-                                    onClick = onNavigateBack,
+                            } else {
+                                Box(
                                     modifier = Modifier
-                                        .statusBarsPadding()
-                                        .align(Alignment.TopStart)
+                                        .fillMaxWidth()
+                                        .aspectRatio(16f / 9f)
+                                        .background(Color.Black),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Image(
-                                        painter = rememberVectorPainter(IconBack),
-                                        contentDescription = "返回",
-                                        colorFilter = ColorFilter.tint(Color.White),
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    if (playerLoading) {
+                                        Text(
+                                            text = "正在解析播放地址…",
+                                            style = MiuixTheme.textStyles.body2,
+                                            color = Color.White.copy(alpha = 0.75f)
+                                        )
+                                    } else if (!playerError.isNullOrBlank()) {
+                                        Text(
+                                            text = playerError ?: "播放失败",
+                                            style = MiuixTheme.textStyles.body2,
+                                            color = Color.White.copy(alpha = 0.85f)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "准备播放…",
+                                            style = MiuixTheme.textStyles.body2,
+                                            color = Color.White.copy(alpha = 0.75f)
+                                        )
+                                    }
                                 }
                             }
-                        } else {
-                            HeroBanner(
-                                cover = video.cover.ifBlank { decodedCover },
-                                title = video.title.ifBlank { initialTitle },
-                                sourceName = video.sourceName.ifBlank { sourceName },
-                                onBack = onNavigateBack,
-                                onShare = {
-                                    shareAction(
-                                        video.title.ifBlank { initialTitle },
-                                        "${video.title.ifBlank { initialTitle }}\n$decodedUrl"
-                                    )
-                                }
-                            )
+                            IconButton(
+                                onClick = onNavigateBack,
+                                modifier = Modifier
+                                    .statusBarsPadding()
+                                    .align(Alignment.TopStart)
+                            ) {
+                                Image(
+                                    painter = rememberVectorPainter(IconBack),
+                                    contentDescription = "返回",
+                                    colorFilter = ColorFilter.tint(Color.White),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
 
                         LazyColumn(
@@ -293,15 +445,18 @@ fun DetailScreen(
                                         shareAction(video.title, "快搜: ${video.title}")
                                     },
                                     onPlayer = {
-                                        if (displayEpisodes.isNotEmpty()) {
+                                        if (lineEpisodes.isNotEmpty()) {
                                             val idx = selectedEpisodeIndex
-                                                .takeIf { it in displayEpisodes.indices }
+                                                .takeIf { it in lineEpisodes.indices }
                                                 ?: 0
-                                            playEpisode(
-                                                state.currentSource,
-                                                idx,
-                                                displayEpisodes[idx]
-                                            )
+                                            isPlayerFullscreen = resolvedVideoUrl != null
+                                            if (resolvedVideoUrl == null) {
+                                                playEpisode(
+                                                    state.currentSource,
+                                                    idx,
+                                                    lineEpisodes[idx]
+                                                )
+                                            }
                                         }
                                     },
                                     onCast = { },
@@ -320,8 +475,10 @@ fun DetailScreen(
                                         onSelect = { name ->
                                             viewModel.switchSource(name)
                                             selectedLineIndex = 0
-                                            selectedEpisodeIndex = -1
+                                            selectedEpisodeIndex = 0
                                             resolvedVideoUrl = null
+                                            autoPlayStarted = false
+                                            playerLoading = true
                                         }
                                     )
                                 }
@@ -335,8 +492,10 @@ fun DetailScreen(
                                         selectedIndex = selectedLineIndex,
                                         onSelect = { index ->
                                             selectedLineIndex = index
-                                            selectedEpisodeIndex = -1
+                                            selectedEpisodeIndex = 0
                                             resolvedVideoUrl = null
+                                            autoPlayStarted = false
+                                            playerLoading = true
                                         }
                                     )
                                 }
@@ -347,12 +506,24 @@ fun DetailScreen(
                                 item {
                                     EpisodeSection(
                                         episodes = displayEpisodes,
-                                        selectedIndex = selectedEpisodeIndex,
+                                        // 倒序展示时，选中高亮映射到展示索引
+                                        selectedIndex = if (episodesReversed) {
+                                            (lineEpisodes.size - 1 - selectedEpisodeIndex)
+                                                .coerceIn(0, (lineEpisodes.size - 1).coerceAtLeast(0))
+                                        } else {
+                                            selectedEpisodeIndex
+                                        },
                                         reversed = episodesReversed,
                                         onToggleReverse = { episodesReversed = !episodesReversed },
                                         onExpand = { episodesExpanded = true },
-                                        onSelect = { index, episode ->
-                                            playEpisode(state.currentSource, index, episode)
+                                        onSelect = { displayIndex, episode ->
+                                            val realIndex = if (episodesReversed) {
+                                                lineEpisodes.indexOfFirst { it.url == episode.url }
+                                                    .takeIf { it >= 0 } ?: displayIndex
+                                            } else {
+                                                displayIndex
+                                            }
+                                            playEpisode(state.currentSource, realIndex, episode)
                                         }
                                     )
                                 }
@@ -369,10 +540,13 @@ fun DetailScreen(
                 val video = (uiState as? DetailUiState.Success)?.video
                 val fullscreenTitle = buildString {
                     append(video?.title ?: initialTitle)
-                    if (video != null && selectedEpisodeIndex in video.episodes.indices) {
-                        val epName = video.episodes[selectedEpisodeIndex].name
-                        if (epName.isNotBlank()) append(" - $epName")
-                    }
+                    val eps = video?.let {
+                        if (it.playLines.isNotEmpty() && selectedLineIndex in it.playLines.indices) {
+                            it.playLines[selectedLineIndex].episodes
+                        } else it.episodes
+                    }.orEmpty()
+                    val epName = eps.getOrNull(selectedEpisodeIndex)?.name
+                    if (!epName.isNullOrBlank()) append(" - $epName")
                 }
                 Box(modifier = Modifier.fillMaxSize()) {
                     InlineVideoPlayer(
@@ -382,9 +556,11 @@ fun DetailScreen(
                         onRequestFullscreen = {},
                         isLoading = false,
                         errorMessage = null,
-                        onPositionChanged = {},
+                        onPositionChanged = { pos -> inlinePlayerPosition = pos },
                         isFullscreen = true,
-                        onBufferingChanged = { isVideoBuffering = it }
+                        onBufferingChanged = { isVideoBuffering = it },
+                        startPositionMs = 0L,
+                        onDurationChanged = { d -> inlinePlayerDuration = d }
                     )
                     FullscreenControls(
                         url = currentUrl,
@@ -409,25 +585,36 @@ fun DetailScreen(
         // 全集 Bottom Sheet
         if (!isPlayerFullscreen) {
             val sheetVideo = (uiState as? DetailUiState.Success)?.video
-            val sheetEpisodes = if (sheetVideo != null &&
+            val sheetBase = if (sheetVideo != null &&
                 sheetVideo.playLines.isNotEmpty() &&
                 selectedLineIndex in sheetVideo.playLines.indices
             ) {
-                val base = sheetVideo.playLines[selectedLineIndex].episodes
-                if (episodesReversed) base.asReversed() else base
+                sheetVideo.playLines[selectedLineIndex].episodes
             } else {
-                val base = sheetVideo?.episodes.orEmpty()
-                if (episodesReversed) base.asReversed() else base
+                sheetVideo?.episodes.orEmpty()
+            }
+            val sheetEpisodes = if (episodesReversed) sheetBase.asReversed() else sheetBase
+            val sheetSelected = if (episodesReversed) {
+                (sheetBase.size - 1 - selectedEpisodeIndex)
+                    .coerceIn(0, (sheetBase.size - 1).coerceAtLeast(0))
+            } else {
+                selectedEpisodeIndex
             }
             EpisodeSheetOverlay(
                 visible = episodesExpanded && sheetVideo != null,
                 episodes = sheetEpisodes,
-                selectedEpisodeIndex = selectedEpisodeIndex,
+                selectedEpisodeIndex = sheetSelected,
                 onDismiss = { episodesExpanded = false },
-                onSelectEpisode = { index, episode ->
+                onSelectEpisode = { displayIndex, episode ->
                     episodesExpanded = false
                     val src = (uiState as? DetailUiState.Success)?.currentSource ?: ""
-                    playEpisode(src, index, episode)
+                    val realIndex = if (episodesReversed) {
+                        sheetBase.indexOfFirst { it.url == episode.url }
+                            .takeIf { it >= 0 } ?: displayIndex
+                    } else {
+                        displayIndex
+                    }
+                    playEpisode(src, realIndex, episode)
                 }
             )
         }
@@ -456,88 +643,7 @@ private fun DetailTopBar(onNavigateBack: () -> Unit) {
     }
 }
 
-// ─── 1. Hero banner ───
-
-@Composable
-private fun HeroBanner(
-    cover: String,
-    title: String,
-    sourceName: String,
-    onBack: () -> Unit,
-    onShare: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 10f)
-            .background(DesignTokens.videoBackground)
-    ) {
-        if (cover.isNotBlank() && (cover.startsWith("http://") || cover.startsWith("https://"))) {
-            val ctx = LocalPlatformContext.current
-            AsyncImage(
-                model = ImageRequest.Builder(ctx).data(cover).build(),
-                contentDescription = title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Black.copy(alpha = 0.35f),
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.75f)
-                        )
-                    )
-                )
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Image(
-                    painter = rememberVectorPainter(IconBack),
-                    contentDescription = "返回",
-                    colorFilter = ColorFilter.tint(Color.White),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            if (sourceName.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(DesignTokens.radiusXs))
-                        .background(AppColors.brand().copy(alpha = 0.9f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = sourceName,
-                        style = MiuixTheme.textStyles.footnote2,
-                        color = AppColors.onBrand()
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            IconButton(onClick = onShare) {
-                Image(
-                    painter = rememberVectorPainter(IconShare),
-                    contentDescription = "分享",
-                    colorFilter = ColorFilter.tint(Color.White),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-// ─── 2. Info: poster + meta ───
+// ─── Info: poster + meta ───
 
 @Composable
 private fun InfoSection(

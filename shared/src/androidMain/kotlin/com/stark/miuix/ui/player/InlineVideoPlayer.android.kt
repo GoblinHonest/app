@@ -60,7 +60,9 @@ actual fun InlineVideoPlayer(
     errorMessage: String?,
     onPositionChanged: (Long) -> Unit,
     isFullscreen: Boolean,
-    onBufferingChanged: ((Boolean) -> Unit)?
+    onBufferingChanged: ((Boolean) -> Unit)?,
+    startPositionMs: Long,
+    onDurationChanged: (Long) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -75,12 +77,19 @@ actual fun InlineVideoPlayer(
     var currentPosition by remember { mutableLongStateOf(exoPlayer.currentPosition) }
     var duration by remember { mutableLongStateOf(exoPlayer.duration.coerceAtLeast(1L)) }
     var isBuffering by remember { mutableStateOf(exoPlayer.playbackState == Player.STATE_BUFFERING) }
+    var didSeekStart by remember(url, startPositionMs) { mutableStateOf(false) }
 
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering = state == Player.STATE_BUFFERING
                 onBufferingChanged?.invoke(state == Player.STATE_BUFFERING)
+                if (!didSeekStart && startPositionMs > 0L &&
+                    (state == Player.STATE_READY || state == Player.STATE_BUFFERING)
+                ) {
+                    didSeekStart = true
+                    exoPlayer.seekTo(startPositionMs)
+                }
             }
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
@@ -101,12 +110,20 @@ actual fun InlineVideoPlayer(
         }
     }
 
+    LaunchedEffect(url, startPositionMs) {
+        if (startPositionMs > 0L && !didSeekStart && exoPlayer.playbackState == Player.STATE_READY) {
+            didSeekStart = true
+            exoPlayer.seekTo(startPositionMs)
+        }
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
             if (!isLoading && errorMessage == null) {
                 currentPosition = exoPlayer.currentPosition
                 duration = exoPlayer.duration.coerceAtLeast(1L)
                 onPositionChanged(currentPosition)
+                if (exoPlayer.duration > 0) onDurationChanged(exoPlayer.duration)
             }
             delay(500)
         }

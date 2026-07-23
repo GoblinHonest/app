@@ -20,5 +20,8 @@ expect fun InlineVideoPlayer(
     errorMessage: String? = null,
     onPositionChanged: (Long) -> Unit = {},
     isFullscreen: Boolean = false,
-    onBufferingChanged: ((Boolean) -> Unit)? = null
+    onBufferingChanged: ((Boolean) -> Unit)? = null,
+    /** 续播起始位置（毫秒），>0 时在准备就绪后 seek */
+    startPositionMs: Long = 0L,
+    onDurationChanged: (Long) -> Unit = {}
 )
