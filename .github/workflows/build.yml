@@ -46,6 +46,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
+          validate-wrappers: true
 
       - name: Build Debug APK
         run: ./gradlew :androidApp:assembleDebug --stacktrace --no-configuration-cache
@@ -106,6 +107,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
+          validate-wrappers: true
 
       - name: Package Desktop
         run: ./gradlew :desktopApp:packageDistributionForCurrentOS --stacktrace --no-configuration-cache
