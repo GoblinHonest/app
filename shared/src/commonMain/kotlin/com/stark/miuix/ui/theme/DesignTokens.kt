@@ -48,13 +48,13 @@ object DesignTokens {
     const val bannerAspectRatio = 16f / 9f
     const val continueWatchAspectRatio = 16f / 10f
 
-    // ─── 品牌色 (Light) ───
+    // ─── 品牌色原始值（UI 请用 AppColors.brand() 以适配亮/暗） ───
     val brandBlue = Color(0xFF2E6BE6)
     val brandBlueLight = Color(0xFF5B9BF5)
     val brandBlueDark = Color(0xFF1D4FB8)
     val brandPurple = Color(0xFF6C63FF)
 
-    // ─── 品牌色 (Dark 模式提亮) ───
+    // ─── 品牌色 (Dark 模式提亮，经 AppColors.brand() 自动选用) ───
     val brandBlueDarkMode = Color(0xFF5B9BF5)
 
     // ─── 功能色 ───

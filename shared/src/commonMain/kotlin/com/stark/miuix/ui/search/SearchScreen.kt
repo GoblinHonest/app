@@ -50,6 +50,7 @@ import com.stark.miuix.ui.icons.IconCancel
 import com.stark.miuix.ui.icons.IconHistory
 import com.stark.miuix.ui.icons.IconRank
 import com.stark.miuix.ui.icons.IconSearch
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
@@ -187,7 +188,7 @@ private fun SearchTopBar(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        DesignTokens.brandBlue.copy(alpha = 0.10f),
+                        AppColors.brand().copy(alpha = 0.10f),
                         Color.Transparent
                     )
                 )
@@ -247,7 +248,7 @@ private fun SearchTopBar(
                 modifier = Modifier
                     .heightIn(min = DesignTokens.touchTargetMin)
                     .clip(RoundedCornerShape(DesignTokens.radiusMd))
-                    .background(DesignTokens.brandBlue)
+                    .background(AppColors.brand())
                     .clickable(onClick = onSearch)
                     .padding(horizontal = DesignTokens.spacingLg, vertical = DesignTokens.spacingSm),
                 contentAlignment = Alignment.Center
@@ -255,7 +256,7 @@ private fun SearchTopBar(
                 Text(
                     text = "搜索",
                     style = MiuixTheme.textStyles.body2,
-                    color = Color.White
+                    color = AppColors.onBrand()
                 )
             }
         }
@@ -381,7 +382,7 @@ private fun SectionHeader(
         Image(
             painter = rememberVectorPainter(icon),
             contentDescription = null,
-            colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+            colorFilter = ColorFilter.tint(AppColors.brand()),
             modifier = Modifier.size(DesignTokens.iconSizeSm)
         )
         Spacer(modifier = Modifier.width(DesignTokens.spacingSm))

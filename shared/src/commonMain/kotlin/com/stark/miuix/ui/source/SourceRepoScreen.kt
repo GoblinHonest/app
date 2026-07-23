@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.source.SourceRepoItem
 import com.stark.miuix.data.source.SourceRepoManager
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -150,27 +151,27 @@ private fun RepoCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DesignTokens.brandBlue)
+                    .background(AppColors.brand())
                     .clickable(enabled = !isLoading, onClick = onImport)
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 Text(
                     if (isLoading) "导入中..." else "一键导入",
                     style = MiuixTheme.textStyles.footnote2,
-                    color = androidx.compose.ui.graphics.Color.White
+                    color = AppColors.onBrand()
                 )
             }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (repo.subscribed) DesignTokens.brandBlue.copy(alpha = 0.15f) else MiuixTheme.colorScheme.surfaceVariant)
+                    .background(if (repo.subscribed) AppColors.brand().copy(alpha = 0.15f) else MiuixTheme.colorScheme.surfaceVariant)
                     .clickable(onClick = onToggleSubscribe)
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 Text(
                     if (repo.subscribed) "已订阅" else "订阅",
                     style = MiuixTheme.textStyles.footnote2,
-                    color = if (repo.subscribed) DesignTokens.brandBlue else MiuixTheme.colorScheme.onSurface
+                    color = if (repo.subscribed) AppColors.brand() else MiuixTheme.colorScheme.onSurface
                 )
             }
         }

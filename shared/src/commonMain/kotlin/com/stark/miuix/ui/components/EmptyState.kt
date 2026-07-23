@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -73,7 +74,7 @@ fun EmptyStateView(
                     modifier = Modifier
                         .widthIn(min = 120.dp)
                         .clip(RoundedCornerShape(DesignTokens.radiusXl))
-                        .background(DesignTokens.brandBlue)
+                        .background(AppColors.brand())
                         .clickable(onClick = onAction)
                         .padding(horizontal = 28.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
@@ -81,7 +82,7 @@ fun EmptyStateView(
                     Text(
                         text = actionText,
                         style = MiuixTheme.textStyles.body2,
-                        color = Color.White
+                        color = AppColors.onBrand()
                     )
                 }
             }

@@ -1,0 +1,161 @@
+# CineHub / miuix-app 打包工作流
+# - push / PR：打 Debug APK 并上传 Artifact
+# - tag v*：额外打 Release APK 并创建 GitHub Release
+# - workflow_dispatch：手动触发完整打包
+
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "17"
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dkotlin.compiler.execution.strategy=in-process
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Build Debug APK
+        run: ./gradlew :androidApp:assembleDebug --stacktrace --no-configuration-cache
+
+      - name: Build Release APK
+        run: ./gradlew :androidApp:assembleRelease --stacktrace --no-configuration-cache
+        continue-on-error: true
+
+      - name: Locate APK artifacts
+        id: apk
+        run: |
+          set -e
+          mkdir -p dist
+          DEBUG_APK=$(find androidApp/build/outputs/apk -name "*.apk" -path "*/debug/*" | head -n 1 || true)
+          RELEASE_APK=$(find androidApp/build/outputs/apk -name "*.apk" -path "*/release/*" | head -n 1 || true)
+          if [ -n "$DEBUG_APK" ]; then
+            cp "$DEBUG_APK" dist/CineHub-debug.apk
+            echo "debug=dist/CineHub-debug.apk" >> "$GITHUB_OUTPUT"
+            echo "Found debug: $DEBUG_APK"
+          else
+            echo "No debug APK found" >&2
+            find androidApp/build/outputs -type f 2>/dev/null || true
+            exit 1
+          fi
+          if [ -n "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" dist/CineHub-release.apk
+            echo "release=dist/CineHub-release.apk" >> "$GITHUB_OUTPUT"
+            echo "Found release: $RELEASE_APK"
+          fi
+          ls -lh dist/
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  desktop:
+    name: Desktop JAR
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Package Desktop
+        run: ./gradlew :desktopApp:packageDistributionForCurrentOS --stacktrace --no-configuration-cache
+        continue-on-error: true
+
+      - name: Collect desktop artifacts
+        id: desktop
+        run: |
+          mkdir -p dist-desktop
+          # Compose Desktop 输出通常在 build/compose/binaries
+          find desktopApp/build -type f \( -name "*.deb" -o -name "*.msi" -o -name "*.dmg" -o -name "*.jar" \) \
+            ! -path "*/tmp/*" 2>/dev/null | while read -r f; do
+            cp -v "$f" dist-desktop/ || true
+          done
+          ls -lah dist-desktop/ || true
+          count=$(find dist-desktop -type f | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Desktop package
+        if: steps.desktop.outputs.count != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-package
+          path: dist-desktop/*
+          if-no-files-found: ignore
+          retention-days: 30
+
+  release:
+    name: GitHub Release
+    needs: [android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

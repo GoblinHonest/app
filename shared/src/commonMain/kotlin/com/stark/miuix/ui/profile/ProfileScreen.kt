@@ -57,6 +57,7 @@ import com.stark.miuix.ui.icons.IconRank
 import com.stark.miuix.ui.icons.IconSettings
 import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.icons.IconStar
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.TimeUtils
 import top.yukonga.miuix.kmp.basic.Card
@@ -188,7 +189,7 @@ private fun SectionTitle(title: String) {
                 .width(4.dp)
                 .height(18.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(DesignTokens.brandBlue)
+                .background(AppColors.brand())
         )
         Spacer(modifier = Modifier.width(DesignTokens.spacingSm))
         Text(
@@ -207,7 +208,7 @@ private fun UserHeader() {
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        DesignTokens.brandBlue.copy(alpha = 0.12f),
+                        AppColors.brand().copy(alpha = 0.12f),
                         MiuixTheme.colorScheme.surface
                     )
                 )
@@ -224,8 +225,8 @@ private fun UserHeader() {
                     .background(
                         Brush.linearGradient(
                             listOf(
-                                DesignTokens.brandBlueLight,
-                                DesignTokens.brandBlue,
+                                AppColors.brandLight(),
+                                AppColors.brand(),
                                 DesignTokens.brandPurple
                             )
                         )
@@ -235,7 +236,7 @@ private fun UserHeader() {
                 Text(
                     text = "C",
                     style = MiuixTheme.textStyles.headline1,
-                    color = Color.White
+                    color = AppColors.onBrand()
                 )
             }
             Spacer(modifier = Modifier.width(DesignTokens.spacingMd))
@@ -249,13 +250,13 @@ private fun UserHeader() {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(DesignTokens.radiusXs))
-                        .background(DesignTokens.brandBlue.copy(alpha = 0.15f))
+                        .background(AppColors.brand().copy(alpha = 0.15f))
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = "多源聚合 · 规则驱动",
                         style = MiuixTheme.textStyles.footnote2,
-                        color = DesignTokens.brandBlue
+                        color = AppColors.brand()
                     )
                 }
             }
@@ -288,7 +289,7 @@ private fun BannerPromo(onNavigateToSourceManage: () -> Unit) {
             .background(
                 Brush.horizontalGradient(
                     listOf(
-                        DesignTokens.brandBlue.copy(alpha = 0.18f),
+                        AppColors.brand().copy(alpha = 0.18f),
                         DesignTokens.brandPurple.copy(alpha = 0.12f)
                     )
                 )
@@ -303,19 +304,19 @@ private fun BannerPromo(onNavigateToSourceManage: () -> Unit) {
                 Text(
                     text = "CineHub · 多源聚合",
                     style = MiuixTheme.textStyles.body2,
-                    color = DesignTokens.brandBlue
+                    color = AppColors.brand()
                 )
                 Text(
                     text = "导入源，解锁海量视频内容",
                     style = MiuixTheme.textStyles.footnote2,
-                    color = DesignTokens.brandBlue.copy(alpha = 0.7f)
+                    color = AppColors.brand().copy(alpha = 0.7f)
                 )
             }
             Box(
                 modifier = Modifier
                     .heightIn(min = DesignTokens.touchTargetMin)
                     .clip(RoundedCornerShape(DesignTokens.radiusPill))
-                    .background(DesignTokens.brandBlue)
+                    .background(AppColors.brand())
                     .clickable(onClick = onNavigateToSourceManage)
                     .padding(horizontal = DesignTokens.spacingLg, vertical = DesignTokens.spacingSm),
                 contentAlignment = Alignment.Center
@@ -323,7 +324,7 @@ private fun BannerPromo(onNavigateToSourceManage: () -> Unit) {
                 Text(
                     text = "管理源",
                     style = MiuixTheme.textStyles.footnote1,
-                    color = Color.White
+                    color = AppColors.onBrand()
                 )
             }
         }
@@ -432,7 +433,7 @@ private fun FavoritesSection(
                 Text(
                     text = "收起",
                     style = MiuixTheme.textStyles.footnote1,
-                    color = DesignTokens.brandBlue
+                    color = AppColors.brand()
                 )
             }
         }
@@ -467,7 +468,7 @@ private fun FavoritesSection(
                         Image(
                             painter = rememberVectorPainter(IconStar),
                             contentDescription = "取消收藏",
-                            colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+                            colorFilter = ColorFilter.tint(AppColors.brand()),
                             modifier = Modifier.size(DesignTokens.iconSizeMd)
                         )
                     }
@@ -498,7 +499,7 @@ private fun CoverThumb(cover: String, title: String) {
             Text(
                 text = title.take(1),
                 style = MiuixTheme.textStyles.body1,
-                color = DesignTokens.brandBlue
+                color = AppColors.brand()
             )
         }
     }
@@ -542,7 +543,7 @@ private fun ContinueWatching(item: WatchHistory, onClick: (WatchHistory) -> Unit
             Text(
                 text = "继续 >",
                 style = MiuixTheme.textStyles.footnote1,
-                color = DesignTokens.brandBlue
+                color = AppColors.brand()
             )
         }
     }
@@ -626,13 +627,13 @@ private fun FeatureCard(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(DesignTokens.radiusSm))
-                    .background(DesignTokens.brandBlue.copy(alpha = 0.12f)),
+                    .background(AppColors.brand().copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = rememberVectorPainter(icon),
                     contentDescription = title,
-                    colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+                    colorFilter = ColorFilter.tint(AppColors.brand()),
                     modifier = Modifier.size(DesignTokens.iconSizeMd)
                 )
             }
@@ -703,7 +704,7 @@ private fun MenuList(
                         Image(
                             painter = rememberVectorPainter(item.icon),
                             contentDescription = item.title,
-                            colorFilter = ColorFilter.tint(DesignTokens.brandBlue),
+                            colorFilter = ColorFilter.tint(AppColors.brand()),
                             modifier = Modifier.size(DesignTokens.iconSizeMd)
                         )
                         Spacer(modifier = Modifier.width(DesignTokens.spacingMd))

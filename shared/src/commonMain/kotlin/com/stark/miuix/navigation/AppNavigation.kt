@@ -60,6 +60,7 @@ import com.stark.miuix.ui.profile.ProfileScreen
 import com.stark.miuix.ui.search.SearchScreen
 import com.stark.miuix.ui.settings.SettingsScreen
 import com.stark.miuix.ui.source.SourceManageScreen
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.UrlEncoder
 import top.yukonga.miuix.kmp.basic.Text
@@ -286,7 +287,7 @@ private fun AppBottomBar(navController: NavHostController, modifier: Modifier = 
         ) {
             BottomTab.entries.forEachIndexed { index, tab ->
                 val selected = index == selectedIndex
-                val targetColor = if (selected) DesignTokens.brandBlue
+                val targetColor = if (selected) AppColors.brand()
                                   else MiuixTheme.colorScheme.outline
                 val animatedColor by animateColorAsState(
                     targetValue = targetColor,

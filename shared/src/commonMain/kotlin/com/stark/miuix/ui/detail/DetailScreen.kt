@@ -78,6 +78,7 @@ import com.stark.miuix.ui.player.FullscreenControls
 import com.stark.miuix.ui.player.releaseSharedPlayer
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.util.UrlEncoder
 import kotlinx.coroutines.launch
@@ -360,7 +361,7 @@ private fun SourceSelector(state: DetailUiState.Success, onSwitch: (String) -> U
                     .clickable { onSwitch(name) }
                     .padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(text = name, style = MiuixTheme.textStyles.body2,
-                        color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface)
+                        color = if (isSelected) AppColors.onBrand() else MiuixTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -385,11 +386,11 @@ private fun PlayLineSelector(
             video.playLines.forEachIndexed { index, line ->
                 val isSelected = index == selectedLineIndex
                 Box(modifier = Modifier.clip(RoundedCornerShape(DesignTokens.radiusXl))
-                    .background(if (isSelected) DesignTokens.brandBlue else MiuixTheme.colorScheme.surfaceVariant)
+                    .background(if (isSelected) AppColors.brand() else MiuixTheme.colorScheme.surfaceVariant)
                     .clickable { onSelectLine(index) }
                     .padding(horizontal = 14.dp, vertical = 6.dp)) {
                     Text(text = line.name, style = MiuixTheme.textStyles.footnote1,
-                        color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface)
+                        color = if (isSelected) AppColors.onBrand() else MiuixTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -404,7 +405,7 @@ private fun EpisodePreview(video: Video, selectedEpisodeIndex: Int, onExpand: ()
             Text(text = "选集", style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
             Text(text = "全 ${video.episodes.size} 集", style = MiuixTheme.textStyles.footnote1,
-                color = DesignTokens.brandBlue,
+                color = AppColors.brand(),
                 modifier = Modifier.clickable(onClick = onExpand).padding(8.dp))
         }
         Spacer(modifier = Modifier.height(DesignTokens.spacingSm))
@@ -429,7 +430,7 @@ private fun ActionBar(video: Video, userDataRepository: UserDataRepository, sour
         ActionButton(
             icon = if (isFavorite) IconStar else IconLike,
             label = if (isFavorite) "已收藏" else "收藏",
-            tint = if (isFavorite) DesignTokens.brandBlue else MiuixTheme.colorScheme.onSurface
+            tint = if (isFavorite) AppColors.brand() else MiuixTheme.colorScheme.onSurface
         ) {
             val fav = Favorite(videoId = videoId, title = video.title, cover = video.cover,
                 sourceName = sourceName, detailUrl = decodedUrl)
@@ -468,7 +469,7 @@ private fun EpisodeSheetOverlay(visible: Boolean, video: Video?, selectedEpisode
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Text(text = "选集 (${video?.episodes?.size ?: 0})", style = MiuixTheme.textStyles.body1,
                                 color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                            Text(text = "收起", style = MiuixTheme.textStyles.footnote1, color = DesignTokens.brandBlue,
+                            Text(text = "收起", style = MiuixTheme.textStyles.footnote1, color = AppColors.brand(),
                                 modifier = Modifier.clickable(onClick = onDismiss).padding(8.dp))
                         }
                     }
@@ -503,7 +504,7 @@ private fun EpisodeChip(index: Int, name: String, isSelected: Boolean, onClick: 
             .widthIn(min = DesignTokens.touchTargetMin)
             .clip(RoundedCornerShape(DesignTokens.radiusMd))
             .background(
-                if (isSelected) DesignTokens.brandBlue
+                if (isSelected) AppColors.brand()
                 else MiuixTheme.colorScheme.surfaceVariant
             )
             .clickable(onClick = onClick)
@@ -513,7 +514,7 @@ private fun EpisodeChip(index: Int, name: String, isSelected: Boolean, onClick: 
         Text(
             text = name.ifBlank { "${index + 1}" },
             style = MiuixTheme.textStyles.footnote1,
-            color = if (isSelected) Color.White else MiuixTheme.colorScheme.onSurface,
+            color = if (isSelected) AppColors.onBrand() else MiuixTheme.colorScheme.onSurface,
             maxLines = 1
         )
     }

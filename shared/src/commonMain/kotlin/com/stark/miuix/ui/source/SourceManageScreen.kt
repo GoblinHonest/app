@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import com.stark.miuix.data.repository.SourceRepository
 import com.stark.miuix.ui.components.SourceCard
@@ -143,7 +144,7 @@ fun SourceManageScreen(
                                     .weight(1f)
                                     .clip(RoundedCornerShape(DesignTokens.radiusMd))
                                     .background(
-                                        if (isSelected) DesignTokens.brandBlue
+                                        if (isSelected) AppColors.brand()
                                         else MiuixTheme.colorScheme.surfaceVariant
                                     )
                                     .clickable { importMode = mode }
@@ -153,7 +154,7 @@ fun SourceManageScreen(
                                 Text(
                                     text = mode.label,
                                     style = MiuixTheme.textStyles.body2,
-                                    color = if (isSelected) Color.White
+                                    color = if (isSelected) AppColors.onBrand()
                                            else MiuixTheme.colorScheme.onSurface
                                 )
                             }
@@ -185,7 +186,7 @@ fun SourceManageScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(DesignTokens.radiusXl))
                             .background(
-                                if (importText.isNotBlank()) DesignTokens.brandBlue
+                                if (importText.isNotBlank()) AppColors.brand()
                                 else MiuixTheme.colorScheme.surfaceVariant
                             )
                             .clickable {
@@ -203,7 +204,7 @@ fun SourceManageScreen(
                         Text(
                             text = "确认导入",
                             style = MiuixTheme.textStyles.body1,
-                            color = if (importText.isNotBlank()) Color.White
+                            color = if (importText.isNotBlank()) AppColors.onBrand()
                                    else MiuixTheme.colorScheme.outline
                         )
                     }

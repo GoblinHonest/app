@@ -56,6 +56,7 @@ import com.stark.miuix.data.repository.VideoRepository
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.components.VideoCard
 import com.stark.miuix.ui.icons.IconSearch
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Text
@@ -159,7 +160,7 @@ private fun SearchBar(onSearchClick: () -> Unit) {
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        DesignTokens.brandBlue.copy(alpha = 0.12f),
+                        AppColors.brand().copy(alpha = 0.12f),
                         MiuixTheme.colorScheme.surface.copy(alpha = 0f)
                     )
                 )
@@ -218,7 +219,7 @@ private fun CategoryTabs(
                     .padding(horizontal = DesignTokens.spacingXs, vertical = DesignTokens.spacingXs)
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (isSelected) DesignTokens.brandBlue else Color.Transparent
+                        if (isSelected) AppColors.brand() else Color.Transparent
                     )
                     .clickable { onSelect(category) }
                     .padding(horizontal = DesignTokens.spacingMd, vertical = 6.dp),
@@ -227,7 +228,7 @@ private fun CategoryTabs(
                 Text(
                     text = category,
                     style = MiuixTheme.textStyles.body2,
-                    color = if (isSelected) Color.White
+                    color = if (isSelected) AppColors.onBrand()
                            else MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
             }
@@ -277,7 +278,7 @@ private fun HomeContentFeed(
                         .width(4.dp)
                         .height(20.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(DesignTokens.brandBlue)
+                        .background(AppColors.brand())
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -396,7 +397,7 @@ private fun BannerPage(video: SearchResult, onClick: () -> Unit) {
                     Brush.verticalGradient(
                         colors = listOf(
                             DesignTokens.posterGradientStart,
-                            DesignTokens.bannerGradientEnd
+                            AppColors.bannerGradientEnd()
                         )
                     )
                 )
@@ -492,7 +493,7 @@ private fun ContinueWatchingRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingXs)
         ) {
-            Box(modifier = Modifier.width(4.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(DesignTokens.brandBlue))
+            Box(modifier = Modifier.width(4.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(AppColors.brand()))
             Spacer(modifier = Modifier.width(8.dp))
             Text("继续观看", style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.onSurface)
         }
@@ -532,6 +533,6 @@ private fun ContinueWatchingCard(item: WatchProgress, onClick: () -> Unit) {
             Text(item.episodeName.ifBlank { "第${item.episodeIndex + 1}集" }, style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.7f))
         }
         Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp).background(Color.White.copy(alpha = 0.3f)))
-        Box(modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(item.progressFraction).height(3.dp).background(DesignTokens.brandBlue))
+        Box(modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(item.progressFraction).height(3.dp).background(AppColors.brand()))
     }
 }

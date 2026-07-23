@@ -555,7 +555,7 @@ fun FullscreenPlayerOverlay(
                                     ),
                                     contentDescription = if (isCasting) "断开投屏" else "投屏",
                                     colorFilter = ColorFilter.tint(
-                                        if (isCasting) DesignTokens.brandBlue else Color.White
+                                        if (isCasting) DesignTokens.brandBlueDarkMode else Color.White
                                     ),
                                     modifier = Modifier
                                         .size(28.dp)

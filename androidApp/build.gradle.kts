@@ -42,6 +42,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // CI / 开源构建：未配置正式签名时使用 debug 证书，便于直接安装验证
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

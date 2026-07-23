@@ -32,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.model.SearchResult
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -101,7 +102,7 @@ fun VideoCard(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(DesignTokens.posterGradientStart, DesignTokens.posterGradientEnd)
+                            listOf(DesignTokens.posterGradientStart, AppColors.posterGradientEnd())
                         )
                     )
             )

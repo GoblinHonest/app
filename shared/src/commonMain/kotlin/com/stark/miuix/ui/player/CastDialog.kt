@@ -45,6 +45,7 @@ import com.stark.miuix.data.dlna.DlnaController
 import com.stark.miuix.data.dlna.DlnaState
 import com.stark.miuix.data.dlna.model.DlnaDevice
 import com.stark.miuix.ui.icons.IconCast
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.ColorFilter
@@ -115,7 +116,7 @@ fun CastDialog(
                                 modifier = Modifier.weight(1f))
                             Text(text = "取消",
                                 style = MiuixTheme.textStyles.footnote1,
-                                color = DesignTokens.brandBlue,
+                                color = AppColors.brand(),
                                 modifier = Modifier.clickable(onClick = onDismiss).padding(8.dp))
                         }
                     }

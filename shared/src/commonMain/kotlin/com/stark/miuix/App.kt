@@ -10,12 +10,16 @@ import androidx.navigation.compose.rememberNavController
 import com.stark.miuix.di.AppContainer
 import com.stark.miuix.navigation.AppNavigation
 import com.stark.miuix.theme.AppTheme
+import com.stark.miuix.theme.ThemeState
 import miuix_app.shared.generated.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun App() {
+    // 尽早恢复主题，避免首帧闪烁错误模式
+    ThemeState.init(AppContainer.localStorage)
+
     LaunchedEffect(Unit) {
         try {
             val bytes = Res.readBytes("files/example_source.json")

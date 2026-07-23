@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.stark.miuix.data.download.DownloadManager
 import com.stark.miuix.data.model.DownloadStatus
 import com.stark.miuix.data.model.DownloadTask
+import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.theme.DesignTokens
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -138,7 +139,7 @@ private fun DownloadTaskCard(
         Spacer(modifier = Modifier.height(8.dp))
 
         Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(MiuixTheme.colorScheme.surfaceVariant))
-        Box(modifier = Modifier.fillMaxWidth(task.progress / 100f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(DesignTokens.brandBlue))
+        Box(modifier = Modifier.fillMaxWidth(task.progress / 100f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(AppColors.brand()))
 
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -156,7 +157,7 @@ private fun DownloadTaskCard(
                 },
                 style = MiuixTheme.textStyles.footnote2,
                 color = when (task.status) {
-                    DownloadStatus.COMPLETED -> DesignTokens.brandBlue
+                    DownloadStatus.COMPLETED -> AppColors.brand()
                     DownloadStatus.FAILED -> MiuixTheme.colorScheme.error
                     else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
                 }
