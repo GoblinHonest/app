@@ -84,6 +84,7 @@ import com.stark.miuix.ui.icons.IconShare
 import com.stark.miuix.ui.player.FullscreenControls
 import com.stark.miuix.ui.player.InlineVideoPlayer
 import com.stark.miuix.ui.theme.DesignTokens
+import com.stark.miuix.util.AppBackHandler
 import com.stark.miuix.util.UrlEncoder
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -126,6 +127,17 @@ fun DetailScreen(
 
     LaunchedEffect(detailUrl) {
         viewModel.loadDetail(sourceName, decodedUrl)
+    }
+
+    // 返回优先级：关弹层 → 退出全屏 → 离开详情页
+    AppBackHandler(enabled = episodesExpanded) {
+        episodesExpanded = false
+    }
+    AppBackHandler(enabled = descExpanded) {
+        descExpanded = false
+    }
+    AppBackHandler(enabled = isPlayerFullscreen) {
+        isPlayerFullscreen = false
     }
 
     fun playEpisode(src: String, index: Int, episode: Episode) {
