@@ -77,12 +77,9 @@ import com.stark.miuix.theme.AppColors
 import com.stark.miuix.ui.components.ErrorStateView
 import com.stark.miuix.ui.components.ShimmerVideoGrid
 import com.stark.miuix.ui.icons.IconBack
-import com.stark.miuix.ui.icons.IconCast
-import com.stark.miuix.ui.icons.IconDownload
 import com.stark.miuix.ui.icons.IconPlay
-import com.stark.miuix.ui.icons.IconSearch
-import com.stark.miuix.ui.icons.IconSettings
 import com.stark.miuix.ui.icons.IconShare
+import com.stark.miuix.ui.icons.IconStar
 import com.stark.miuix.ui.player.FullscreenControls
 import com.stark.miuix.ui.player.InlineVideoPlayer
 import com.stark.miuix.ui.player.releaseSharedPlayer
@@ -437,31 +434,40 @@ fun DetailScreen(
                                 )
                             }
 
-                            // 功能五宫格
+                            // 仅保留有实际功能的操作
                             item {
                                 ActionGrid(
-                                    onDownload = { },
-                                    onQuickSearch = {
-                                        shareAction(video.title, "快搜: ${video.title}")
+                                    isFavorite = isFavorite,
+                                    onToggleFavorite = {
+                                        val fav = Favorite(
+                                            videoId = videoId,
+                                            title = video.title.ifBlank { initialTitle },
+                                            cover = video.cover.ifBlank { decodedCover },
+                                            sourceName = sourceName,
+                                            detailUrl = decodedUrl
+                                        )
+                                        isFavorite = userDataRepository.toggleFavorite(fav)
                                     },
-                                    onPlayer = {
-                                        if (lineEpisodes.isNotEmpty()) {
+                                    onShare = {
+                                        shareAction(
+                                            video.title.ifBlank { initialTitle },
+                                            "${video.title.ifBlank { initialTitle }}\n$decodedUrl"
+                                        )
+                                    },
+                                    onFullscreen = {
+                                        if (resolvedVideoUrl != null) {
+                                            isPlayerFullscreen = true
+                                        } else if (lineEpisodes.isNotEmpty()) {
                                             val idx = selectedEpisodeIndex
                                                 .takeIf { it in lineEpisodes.indices }
                                                 ?: 0
-                                            isPlayerFullscreen = resolvedVideoUrl != null
-                                            if (resolvedVideoUrl == null) {
-                                                playEpisode(
-                                                    state.currentSource,
-                                                    idx,
-                                                    lineEpisodes[idx]
-                                                )
-                                            }
+                                            playEpisode(
+                                                state.currentSource,
+                                                idx,
+                                                lineEpisodes[idx]
+                                            )
+                                            isPlayerFullscreen = true
                                         }
-                                    },
-                                    onCast = { },
-                                    onSettings = {
-                                        shareAction("设置", "播放设置")
                                     }
                                 )
                             }
@@ -797,11 +803,10 @@ private fun StatusChip(text: String, subtle: Boolean = false) {
 
 @Composable
 private fun ActionGrid(
-    onDownload: () -> Unit,
-    onQuickSearch: () -> Unit,
-    onPlayer: () -> Unit,
-    onCast: () -> Unit,
-    onSettings: () -> Unit
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
+    onFullscreen: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -809,16 +814,25 @@ private fun ActionGrid(
             .padding(horizontal = DesignTokens.screenPadding, vertical = DesignTokens.spacingMd),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        ActionItem(IconDownload, "下载", onDownload)
-        ActionItem(IconSearch, "快搜", onQuickSearch)
-        ActionItem(IconPlay, "播放器", onPlayer)
-        ActionItem(IconCast, "投屏", onCast)
-        ActionItem(IconSettings, "设置", onSettings)
+        ActionItem(
+            icon = IconStar,
+            label = if (isFavorite) "已收藏" else "收藏",
+            highlighted = isFavorite,
+            onClick = onToggleFavorite
+        )
+        ActionItem(IconShare, "分享", onClick = onShare)
+        ActionItem(IconPlay, "全屏", onClick = onFullscreen)
     }
 }
 
 @Composable
-private fun ActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun ActionItem(
+    icon: ImageVector,
+    label: String,
+    highlighted: Boolean = false,
+    onClick: () -> Unit
+) {
+    val tint = if (highlighted) AppColors.brand() else MiuixTheme.colorScheme.onSurface
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -829,14 +843,15 @@ private fun ActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
         Image(
             painter = rememberVectorPainter(icon),
             contentDescription = label,
-            colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+            colorFilter = ColorFilter.tint(tint),
             modifier = Modifier.size(DesignTokens.iconSizeLg)
         )
         Spacer(modifier = Modifier.height(DesignTokens.spacingXs))
         Text(
             text = label,
             style = MiuixTheme.textStyles.footnote2,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+            color = if (highlighted) AppColors.brand()
+            else MiuixTheme.colorScheme.onSurfaceVariantSummary
         )
     }
 }
@@ -1011,18 +1026,22 @@ private fun EpisodeCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 未播放：纯底无边框；当前播放中：品牌色描边 + 浅底
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(44.dp)
             .clip(RoundedCornerShape(DesignTokens.radiusMd))
+            .background(MiuixTheme.colorScheme.surfaceVariant)
             .then(
                 if (selected) {
-                    Modifier
-                        .background(AppColors.brand().copy(alpha = 0.12f))
-                        .border(1.5.dp, AppColors.brand(), RoundedCornerShape(DesignTokens.radiusMd))
+                    Modifier.border(
+                        1.5.dp,
+                        AppColors.brand(),
+                        RoundedCornerShape(DesignTokens.radiusMd)
+                    )
                 } else {
-                    Modifier.background(MiuixTheme.colorScheme.surfaceVariant)
+                    Modifier
                 }
             )
             .clickable(onClick = onClick)
