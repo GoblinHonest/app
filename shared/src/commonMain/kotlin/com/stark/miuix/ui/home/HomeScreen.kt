@@ -100,7 +100,11 @@ fun HomeScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MiuixTheme.colorScheme.background)
+    ) {
         // 顶部搜索栏
         SearchBar(onSearchClick = onNavigateToSearch)
 

@@ -91,7 +91,11 @@ fun SearchScreen(
         viewModel.search(trimmed)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MiuixTheme.colorScheme.background)
+    ) {
         SearchTopBar(
             query = query,
             onQueryChange = {

@@ -96,7 +96,11 @@ fun AppNavigation(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MiuixTheme.colorScheme.background)
+    ) {
         // 内容区底部 padding = 底栏图标高度 + 系统导航栏高度，与悬浮底栏实际高度完全一致
         val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         Box(modifier = Modifier

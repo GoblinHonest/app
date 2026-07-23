@@ -90,7 +90,9 @@ fun ProfileScreen(
     var showFavorites by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MiuixTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 88.dp)
     ) {
         item { UserHeader() }
@@ -208,8 +210,8 @@ private fun UserHeader() {
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        AppColors.brand().copy(alpha = 0.12f),
-                        MiuixTheme.colorScheme.surface
+                        AppColors.brand().copy(alpha = 0.22f),
+                        MiuixTheme.colorScheme.background
                     )
                 )
             )
@@ -286,11 +288,12 @@ private fun BannerPromo(onNavigateToSourceManage: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = DesignTokens.screenPadding)
             .clip(RoundedCornerShape(DesignTokens.radiusLg))
+            .background(MiuixTheme.colorScheme.surfaceVariant)
             .background(
                 Brush.horizontalGradient(
                     listOf(
-                        AppColors.brand().copy(alpha = 0.18f),
-                        DesignTokens.brandPurple.copy(alpha = 0.12f)
+                        AppColors.brand().copy(alpha = 0.28f),
+                        DesignTokens.brandPurple.copy(alpha = 0.18f)
                     )
                 )
             )
@@ -304,12 +307,12 @@ private fun BannerPromo(onNavigateToSourceManage: () -> Unit) {
                 Text(
                     text = "CineHub · 多源聚合",
                     style = MiuixTheme.textStyles.body2,
-                    color = AppColors.brand()
+                    color = MiuixTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "导入源，解锁海量视频内容",
                     style = MiuixTheme.textStyles.footnote2,
-                    color = AppColors.brand().copy(alpha = 0.7f)
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
             }
             Box(
